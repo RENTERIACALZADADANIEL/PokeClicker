@@ -36,7 +36,7 @@ El diseño lógico de la base de datos está optimizado para gestionar de manera
 
 ##  Implementación Técnica (SQL)
 
-[cite_start]A continuación, se presenta el script necesario para generar la estructura de tablas y las restricciones de integridad (llaves foráneas) que aseguran la consistencia de los datos.
+A continuación, se presenta el script necesario para generar la estructura de tablas y las restricciones de integridad (llaves foráneas) que aseguran la consistencia de los datos.
 
 ```sql
 CREATE TABLE usuarios (

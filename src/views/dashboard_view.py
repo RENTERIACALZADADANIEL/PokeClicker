@@ -22,7 +22,7 @@ class DashboardView(ft.View):
         )
         
         self.controls = [
-            ft.AppBar(title=ft.Text(f"Poke Clicker - {self.page.session.get('username')}"), bgcolor="red", color="white"),
+            ft.AppBar(title=ft.Text(f"Poke Clicker - {self.page.session["username"]}"), bgcolor="red", color="white"),
             self.container,
             self.navigation_bar
         ]

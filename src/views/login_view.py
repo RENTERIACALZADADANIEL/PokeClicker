@@ -1,7 +1,8 @@
 import flet as ft
 
 class LoginView(ft.View):
-    def __init__(self, al_intentar_login):
+    # Añadimos 'ir_a_registro' a los parámetros
+    def __init__(self, al_intentar_login, ir_a_registro):
         super().__init__(route="/login")
         self.al_intentar_login = al_intentar_login
         
@@ -18,6 +19,8 @@ class LoginView(ft.View):
                     self.txt_email,
                     self.txt_pass,
                     ft.ElevatedButton("Ingresar", on_click=self.login_click, width=200),
+                    # Botón para ir a la pantalla de registro
+                    ft.TextButton("¿No tienes cuenta? Regístrate aquí", on_click=ir_a_registro),
                     self.lbl_error
                 ],
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,

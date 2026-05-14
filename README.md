@@ -91,10 +91,16 @@ CREATE TABLE inventario_items (
 ---
 
 ### Jesus Daniel Renteria Calzada
+
+![Renteria](imagenes/Renteria.jpeg)
+##Fotografia
 **Número de control:** 23308060610259  
 **Correo electrónico:** 23308060610259@cetis61.edu.mx
 
 ### Heriberto Yurem Vasquez Cervantes
+
+![Heriberto](imagenes/Heriberto.jpeg)
+##Fotografia
 **Número de control:** 23308060610438  
 **Correo electrónico:** 23308060610438@cetis61.edu.mx
 

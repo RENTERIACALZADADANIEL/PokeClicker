@@ -1,23 +1,30 @@
 import flet as ft
 
-class LoginView(ft.Column):
-    def __init__(self, on_login_click):
-        super().__init__()
-        self.on_login_click = on_login_click # Función que viene del controlador
+class LoginView(ft.View):
+    def __init__(self, al_intentar_login):
+        super().__init__(route="/login")
+        self.al_intentar_login = al_intentar_login
         
-        self.txt_email = ft.TextField(label="Email", width=300)
-        self.txt_password = ft.TextField(label="Contraseña", password=True, can_reveal_password=True, width=300)
-        self.lbl_error = ft.Text(color="red")
+        self.txt_email = ft.TextField(label="Correo Electrónico", width=350)
+        self.txt_pass = ft.TextField(label="Contraseña", password=True, can_reveal_password=True, width=350)
+        self.lbl_error = ft.Text(color="red", weight="bold")
         
         self.controls = [
-            ft.Text("Poke Clicker - Login", size=30, weight="bold"),
-            self.txt_email,
-            self.txt_password,
-            ft.ElevatedButton("Iniciar Sesión", on_click=self.login_submit, bgcolor="red", color="white"),
-            self.lbl_error
+            ft.AppBar(title=ft.Text("Poke Clicker - Login"), bgcolor="red", color="white"),
+            ft.Column(
+                [
+                    ft.Image(src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png", width=100),
+                    ft.Text("¡Inicia tu aventura!", size=25, weight="bold"),
+                    self.txt_email,
+                    self.txt_pass,
+                    ft.ElevatedButton("Ingresar", on_click=self.login_click, width=200),
+                    self.lbl_error
+                ],
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                alignment=ft.MainAxisAlignment.CENTER,
+                expand=True
+            )
         ]
-        self.horizontal_alignment = ft.CrossAxisAlignment.CENTER
 
-    def login_submit(self, e):
-        # Llamamos a la lógica pasándole los datos
-        self.on_login_click(self.txt_email.value, self.txt_password.value)
+    def login_click(self, e):
+        self.al_intentar_login(self.txt_email.value, self.txt_pass.value)

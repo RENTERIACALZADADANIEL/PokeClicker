@@ -1,26 +1,22 @@
-import hashlib # O usa bcrypt si las tienes encriptadas
+import bcrypt
 
 class LoginController:
-    def __init__(self, model, view):
+    def __init__(self, model):
         self.model = model
-        self.view = view
 
-    def intentar_login(self, email, password):
+    def verificar_credenciales(self, email, password):
         if not email or not password:
-            return "Por favor, llena todos los campos."
+            return None, "Todos los campos son obligatorios."
 
-        user = self.model.validar_usuario(email)
-        
-        if user:
-            # Si en tu DB las guardas en texto plano (no recomendado):
-            # if user['password'] == password:
-            
-            # Si las guardas con Hash (recomendado):
-            # pass_hash = hashlib.sha256(password.encode()).hexdigest()
-            
-            if user['password'] == password: 
-                return True
+        usuario = self.model.obtener_usuario_por_email(email)
+
+        if usuario:
+            # Verificamos la contraseña hasheada
+            # password.encode() es la contraseña en texto plano del input
+            # usuario['password'].encode() es el hash de la DB
+            if bcrypt.checkpw(password.encode('utf-8'), usuario['password'].encode('utf-8')):
+                return usuario, None
             else:
-                return "Contraseña incorrecta."
-        else:
-            return "Usuario no encontrado."
+                return None, "Contraseña incorrecta."
+        
+        return None, "El usuario no existe."

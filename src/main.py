@@ -2,28 +2,38 @@ import flet as ft
 from models.usuario_model import UsuarioModel
 from controllers.login_controller import LoginController
 from views.login_view import LoginView
+from views.dashboard_view import DashboardView 
 
 def main(page: ft.Page):
-    page.title = "Poke Clicker Login"
-    page.vertical_alignment = ft.MainAxisAlignment.CENTER
-    page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
-
-    model = UsuarioModel()
+    page.title = "Poke Clicker"
     
-    # Esta función conecta la Vista con el Controlador
-    def handle_login(email, password):
-        resultado = controller.intentar_login(email, password)
-        if resultado is True:
-            page.clean()
-            page.add(ft.Text(f"¡Bienvenido de nuevo! Redirigiendo al juego..."))
-            # Aquí cargarías tu vista de juego
+    modelo = UsuarioModel()
+    controlador = LoginController(modelo)
+
+    def logout_handler(e):
+        page.session.clear()
+        page.views.clear()
+        page.views.append(LoginView(login_handler))
+        page.update()
+
+    def login_handler(email, password):
+        usuario, error = controlador.verificar_credenciales(email, password)
+        
+        if error:
+            page.views[-1].lbl_error.value = error
+            page.update()
         else:
-            login_ui.lbl_error.value = resultado
+            # Guardar sesión
+            page.session.set("user_id", usuario['id_usuario'])
+            page.session.set("username", usuario['username'])
+            
+            # Navegar al Dashboard
+            page.views.clear()
+            page.views.append(DashboardView(page, logout_handler))
             page.update()
 
-    controller = LoginController(model, None)
-    login_ui = LoginView(handle_login)
-    
-    page.add(login_ui)
+    # Iniciar con el Login
+    page.views.append(LoginView(login_handler))
+    page.update()
 
 ft.app(target=main)

@@ -3,6 +3,23 @@
 **Autores:** Jesus Daniel Renteria Calzada, Heriberto Yurem Vasquez Cervantes
 **Asignatura:** Implementa aplicaciones móviles multiplataforma
 
+
+### Jesus Daniel Renteria Calzada
+
+![Renteria](imagenes/Renteria.jpeg)
+##Fotografia
+**Número de control:** 23308060610259  
+**Correo electrónico:** 23308060610259@cetis61.edu.mx
+
+### Heriberto Yurem Vasquez Cervantes
+
+![Heriberto](imagenes/Heriberto.jpeg)
+##Fotografia
+**Número de control:** 23308060610438  
+**Correo electrónico:** 23308060610438@cetis61.edu.mx
+
+**Especialidad:** Programación
+
 **Poke-Clicker** es un proyecto de videojuego tipo **"Idle Clicker"** donde la progresión del jugador se basa en la acumulación de clics y la gestión estratégica de recursos inspirados en el universo Pokémon.
 
 ---
@@ -89,19 +106,3 @@ CREATE TABLE inventario_items (
 
 
 ---
-
-### Jesus Daniel Renteria Calzada
-
-![Renteria](imagenes/Renteria.jpeg)
-##Fotografia
-**Número de control:** 23308060610259  
-**Correo electrónico:** 23308060610259@cetis61.edu.mx
-
-### Heriberto Yurem Vasquez Cervantes
-
-![Heriberto](imagenes/Heriberto.jpeg)
-##Fotografia
-**Número de control:** 23308060610438  
-**Correo electrónico:** 23308060610438@cetis61.edu.mx
-
-**Especialidad:** Programación

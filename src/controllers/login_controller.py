@@ -20,39 +20,40 @@ class LoginController:
             return False, "La contraseña debe tener al menos 6 caracteres"
         return True, ""
     
-    def verificar_credenciales(self, email: str, password: str) -> Tuple[Optional[Dict], Optional[str]]:
-        """Lógica para iniciar sesión."""
+    def verificar_credenciales(self, email: str, password: str) -> Union[Dict, str]:
+        """Lógica para iniciar sesión. Concuerda con el formato str de la vista."""
         # Validaciones básicas
         if not email or not password:
-            return None, "Por favor, completa todos los campos."
+            return "Por favor, completa todos los campos."
         
         if not self._validar_email(email):
-            return None, "Formato de email inválido."
+            return "Formato de email inválido."
         
         try:
+            # Consulta a la base de datos a través del modelo
             usuario = self.model.obtener_usuario_por_email(email)
             
             if not usuario:
                 logger.warning(f"Intento de login con email no registrado: {email}")
-                return None, "El correo electrónico no está registrado."
+                return "El correo electrónico no está registrado."
             
-            # Verificar contraseña
+            # Verificar contraseña contra el hash almacenado en la base de datos
             password_bytes = password.encode('utf-8')
             hash_bytes = usuario['password'].encode('utf-8')
             
             if bcrypt.checkpw(password_bytes, hash_bytes):
                 logger.info(f"Login exitoso para: {email}")
-                return usuario, None
+                return usuario  # Retorna el diccionario del usuario tal como viene de la BD
             
             logger.warning(f"Contraseña incorrecta para: {email}")
-            return None, "Contraseña incorrecta."
+            return "Contraseña incorrecta."
             
         except Exception as e:
             logger.error(f"Error en verificación de credenciales: {e}")
-            return None, "Error del servidor. Intente nuevamente."
+            return "Error del servidor. Intente nuevamente."
     
     def crear_cuenta(self, username: str, email: str, password: str) -> Union[bool, str]:
-        """Lógica para registrar un nuevo usuario."""
+        """Lógica para registrar un nuevo usuario en la base de datos."""
         # Validaciones
         if not username or not email or not password:
             return "Todos los campos son obligatorios."
@@ -68,16 +69,16 @@ class LoginController:
             return msg
         
         try:
-            # Verificar duplicados
+            # Verificar duplicados en la base de datos
             if self.model.obtener_usuario_por_email(email):
                 return "Este correo ya está en uso."
             
-            # Hashear contraseña
+            # Hashear contraseña para almacenar de forma segura
             salt = bcrypt.gensalt(rounds=12)  # 12 rounds es más seguro
             password_hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
             password_hashed_str = password_hashed.decode('utf-8')
             
-            # Registrar usuario
+            # Registrar nuevo registro en la base de datos
             exito = self.model.registrar_usuario(username, email, password_hashed_str)
             
             if exito:

@@ -1,0 +1,7 @@
+flet==0.21.0
+mysql-connector-python==8.2.0
+bcrypt==4.1.2
+pydantic==2.5.0
+pydantic[email]
+python-dotenv==1.0.0
+PyJWT==2.8.0

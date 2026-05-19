@@ -15,7 +15,9 @@ dependencies = [
 ]
 
 [project.scripts]
-app = "main:main"
+app = "src.main:main"
 
-[tool.uv]
-dev-dependencies = []
+[dependency-groups]
+dev = []
+
+#programacorre con python src/main.py

@@ -6,7 +6,7 @@ import time
 class RegisterView:
     def __init__(self, page: ft.Page, on_register_success, on_login_click):
         self.page = page
-        self.on_register_success = on_register_success  # Ahora recibe el email
+        self.on_register_success = on_register_success
         self.on_login_click = on_login_click
         self.auth_controller = AuthController()
         
@@ -108,12 +108,7 @@ class RegisterView:
     def _delayed_redirect(self, email):
         """Espera y redirige al login"""
         time.sleep(1.5)
-        # Actualizar en el hilo principal
-        self.page.invoke_method("", [], {
-            "type": "invoke",
-            "method": lambda: self.on_register_success(email)
-        })
-        # Alternativa más simple: llamar directamente después del sleep
+        # Llamar directamente al callback
         self.on_register_success(email)
     
     def register_click(self, e):
@@ -151,10 +146,10 @@ class RegisterView:
         
         if success:
             self.success_text.value = message
-            saved_email = self.email_input.value  # Guardar el email antes de limpiar
+            saved_email = self.email_input.value
             self.page.update()
             
-            # Limpiar campos después del registro exitoso
+            # Limpiar campos
             self.username_input.value = ""
             self.email_input.value = ""
             self.password_input.value = ""
@@ -163,7 +158,7 @@ class RegisterView:
             self.email_valid.name = ft.Icons.CIRCLE_OUTLINED
             self.email_valid.color = ft.Colors.GREY_400
             
-            # Redirigir al login después de 1.5 segundos usando threading
+            # Redirigir después de 1.5 segundos
             threading.Thread(
                 target=self._delayed_redirect, 
                 args=(saved_email,), 

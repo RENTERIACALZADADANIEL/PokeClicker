@@ -12,7 +12,6 @@ class LoginView:
         self.on_register_click = on_register_click
         self.auth_controller = AuthController()
         
-        # Campos de entrada
         self.email_input = ft.TextField(
             label="Email",
             hint_text="tu@email.com",
@@ -93,18 +92,15 @@ class LoginView:
         self.on_login_success()
     
     def login_click(self, e):
-        # Limpiar mensajes
         self.message_text.value = ""
         self.success_text.value = ""
         self.register_success_text.value = ""
         
-        # Validar campos
         if not self.email_input.value or not self.password_input.value:
             self.message_text.value = "Por favor, completa todos los campos"
             self.page.update()
             return
         
-        # Intentar login
         data = {
             "email": self.email_input.value,
             "password": self.password_input.value
@@ -122,7 +118,7 @@ class LoginView:
         self.page.update()
     
     def show_forgot_password(self, e):
-        """Muestra el diálogo de recuperación de contraseña con envío real"""
+        """Muestra el diálogo de recuperación de contraseña"""
         email_field = ft.TextField(
             label="Email",
             hint_text="Ingresa tu correo electrónico",
@@ -142,44 +138,34 @@ class LoginView:
                 self.page.update()
                 return
             
-            # Mostrar progreso
             progress_bar.visible = True
             status_text.value = "Enviando correo..."
             status_text.color = ft.Colors.BLUE_400
             self.page.update()
             
-            # Buscar usuario en la base de datos
+            # Buscar usuario
             user = User.find_by_email(email)
             
             if user:
-                # Generar token para el usuario
                 token = generate_token(user.id_usuario, user.email)
-                
-                # Enviar correo real
                 email_sent = send_reset_email(user.email, token, user.username)
                 
                 if email_sent:
                     status_text.value = f"✅ Correo enviado a {email}"
                     status_text.color = ft.Colors.GREEN_400
                 else:
-                    # Si falla el envío, mostrar el token para desarrollo
-                    status_text.value = f"⚠️ Error al enviar. Token: {token[:20]}..."
+                    status_text.value = "⚠️ Revisa la consola para ver el token"
                     status_text.color = ft.Colors.ORANGE_400
             else:
-                # Por seguridad, mostrar el mismo mensaje
-                status_text.value = f"✅ Si el correo existe, recibirás un enlace"
+                status_text.value = "✅ Si el correo existe, recibirás un enlace"
                 status_text.color = ft.Colors.GREEN_400
             
             progress_bar.visible = False
             self.page.update()
         
         def close_dialog(e):
-            """Cierra el diálogo y redirige al login"""
             self.page.close(dialog)
-            # Redirigir a iniciar sesión (ya estamos ahí, solo actualizar)
-            self.message_text.value = ""
-            self.success_text.value = ""
-            self.register_success_text.value = "Revisa tu correo y sigue las instrucciones"
+            self.register_success_text.value = "📧 Revisa tu correo y sigue las instrucciones"
             self.register_success_text.color = ft.Colors.BLUE_600
             self.page.update()
         
@@ -209,7 +195,7 @@ class LoginView:
                 ),
             ],
             actions_alignment=ft.MainAxisAlignment.END,
-            on_dismiss=close_dialog  # Cuando se cierra de cualquier forma
+            on_dismiss=close_dialog
         )
         
         self.page.show_dialog(dialog)

@@ -9,48 +9,92 @@ from email.mime.multipart import MIMEMultipart
 
 load_dotenv()
 
+# Configuración JWT
 SECRET_KEY = os.getenv('SECRET_KEY', 'poke_clicker_default_secret_key_2024')
-TOKEN_EXPIRATION = int(os.getenv('TOKEN_EXPIRATION_MINUTES', '5'))
+TOKEN_EXPIRATION = int(os.getenv('TOKEN_EXPIRATION_MINUTES', '30'))  # 30 minutos por defecto
 ALGORITHM = "HS256"
 DEBUG_MODE = os.getenv('DEBUG_MODE', 'false').lower() == 'true'
 
+# ===== FUNCIONES DE CONTRASEÑA =====
+
 def hash_password(password: str) -> str:
-    """Hashea una contraseña usando bcrypt"""
-    salt = bcrypt.gensalt()
+    """
+    Hashea una contraseña usando bcrypt con salt automático
+    """
+    salt = bcrypt.gensalt(rounds=12)  # 12 rounds es seguro y eficiente
     hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
     return hashed.decode('utf-8')
 
-def generate_token(user_id: int, email: str) -> str:
-    """Genera un token JWT para recuperación de contraseña"""
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """
+    Verifica una contraseña contra su hash
+    """
+    try:
+        return bcrypt.checkpw(
+            plain_password.encode('utf-8'),
+            hashed_password.encode('utf-8')
+        )
+    except Exception:
+        return False
+
+# ===== FUNCIONES JWT =====
+
+def generate_token(user_id: int, email: str, token_type: str = 'password_reset') -> str:
+    """
+    Genera un token JWT para recuperación de contraseña
+    """
+    now = datetime.now(timezone.utc)
     payload = {
         'user_id': user_id,
         'email': email,
-        'exp': datetime.now(timezone.utc) + timedelta(minutes=TOKEN_EXPIRATION),
-        'iat': datetime.now(timezone.utc),
-        'type': 'password_reset'
+        'exp': now + timedelta(minutes=TOKEN_EXPIRATION),
+        'iat': now,
+        'type': token_type
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 def verify_token(token: str) -> dict:
-    """Verifica y decodifica un token JWT"""
+    """
+    Verifica y decodifica un token JWT
+    Returns: dict con payload o None si es inválido
+    """
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        
+        # Verificar que sea un token de recuperación
         if payload.get('type') != 'password_reset':
+            print("❌ Tipo de token inválido")
             return None
+        
         return payload
+        
     except jwt.ExpiredSignatureError:
         print("❌ Token expirado")
         return None
-    except jwt.InvalidTokenError:
-        print("❌ Token inválido")
+    except jwt.InvalidTokenError as e:
+        print(f"❌ Token inválido: {e}")
         return None
+    except Exception as e:
+        print(f"❌ Error verificando token: {e}")
+        return None
+
+def decode_token(token: str) -> dict:
+    """
+    Decodifica un token JWT sin verificar (solo para debugging)
+    """
+    try:
+        return jwt.decode(token, options={"verify_signature": False})
+    except Exception:
+        return {}
+
+# ===== FUNCIONES DE EMAIL =====
 
 def send_reset_email(email: str, token: str, username: str) -> bool:
     """
     Envía un correo de recuperación de contraseña
     Returns: True si se envió correctamente, False si hubo error
     """
-    # Enlace que abrirá la aplicación Flet
+    # Enlace para la aplicación Flet
     reset_link = f"http://localhost:8550?token={token}"
     
     # Si estamos en modo debug, mostramos el token en consola
@@ -95,9 +139,9 @@ def send_reset_email(email: str, token: str, username: str) -> bool:
             <style>
                 body {{ font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px; }}
                 .container {{ max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }}
-                .header {{ text-align: center; color: #1976D2; font-size: 24px; font-weight: bold; margin-bottom: 20px; }}
+                .header {{ text-align: center; color: #E53935; font-size: 24px; font-weight: bold; margin-bottom: 20px; }}
                 .content {{ color: #333; line-height: 1.6; }}
-                .button {{ display: inline-block; background-color: #1976D2; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }}
+                .button {{ display: inline-block; background-color: #E53935; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }}
                 .warning {{ background-color: #FFF3CD; color: #856404; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #FFC107; }}
                 .token-box {{ background: #f5f5f5; padding: 15px; border-radius: 5px; font-family: 'Courier New', monospace; font-size: 12px; word-break: break-all; margin: 20px 0; }}
                 .footer {{ text-align: center; color: #999; font-size: 12px; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }}
@@ -115,7 +159,7 @@ def send_reset_email(email: str, token: str, username: str) -> bool:
                     </center>
                     
                     <p>Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
-                    <p style="color: #1976D2; word-break: break-all; font-size: 13px;">{reset_link}</p>
+                    <p style="color: #E53935; word-break: break-all; font-size: 13px;">{reset_link}</p>
                     
                     <p><strong>O también puedes usar este token directamente en la aplicación:</strong></p>
                     <div class="token-box">{token}</div>

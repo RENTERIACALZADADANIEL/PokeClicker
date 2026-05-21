@@ -2,13 +2,18 @@ import flet as ft
 from views.login_view import LoginView
 from views.register_view import RegisterView
 from views.reset_password_view import ResetPasswordView
+from views.dashboard_view import DashboardView
 
 class PokeClickerApp:
     def __init__(self):
         self.current_user = None
         self.registered_email = None
+        self._session_data = {}
+        self.page = None
     
     def main(self, page: ft.Page):
+        self.page = page
+        
         page.title = "Poke Clicker"
         page.window.width = 500
         page.window.height = 700
@@ -16,29 +21,27 @@ class PokeClickerApp:
         page.vertical_alignment = ft.MainAxisAlignment.CENTER
         page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
         
-        # Contenedor principal
-        self.container = ft.Container()
+        self.container = ft.Container(expand=True)
         
-        # Verificar si hay un token en la URL (deep link desde correo)
         token = self.get_token_from_url(page)
         
         if token:
-            # Mostrar vista de reset de contraseña
-            self.show_reset_password(page, token)
+            self.show_reset_password(token)
         else:
-            # Mostrar vista de login
-            self.show_login(page)
+            self.show_login()
         
         page.add(self.container)
     
     def get_token_from_url(self, page):
-        """Obtiene el token de la URL si existe"""
         try:
-            # Verificar query parameters
             if hasattr(page, 'query') and page.query:
-                return page.query.get("token")
+                if isinstance(page.query, dict):
+                    return page.query.get("token")
+                elif isinstance(page.query, str) and "token=" in page.query:
+                    import urllib.parse
+                    params = urllib.parse.parse_qs(page.query)
+                    return params.get("token", [None])[0]
             
-            # Verificar si hay argumentos de línea de comandos
             import sys
             for arg in sys.argv:
                 if arg.startswith("--token="):
@@ -46,77 +49,100 @@ class PokeClickerApp:
             
             return None
         except Exception as e:
-            print(f"Error al obtener token: {e}")
+            print(f"Error al obtener token (ignorado): {e}")
             return None
     
-    def show_login(self, page, prefill_email=None):
-        """Muestra la vista de login"""
+    def set_session(self, key, value):
+        self._session_data[key] = value
+    
+    def get_session(self, key, default=None):
+        return self._session_data.get(key, default)
+    
+    def clear_session(self):
+        self._session_data.clear()
+    
+    def show_login(self, prefill_email=None):
+        self.clear_session()
+        self.current_user = None
+        
         login_view = LoginView(
-            page=page,
-            on_login_success=lambda: self.on_login_success(page),
-            on_register_click=lambda e: self.show_register(page)
+            page=self.page,
+            on_login_success=lambda user_data: self.on_login_success(user_data),
+            on_register_click=lambda e: self.show_register()
         )
         
         if prefill_email:
             login_view.email_input.value = prefill_email
-            # Mostrar mensaje de registro exitoso
             login_view.register_success_text.value = "✅ ¡Registro exitoso! Ahora inicia sesión"
         
         self.container.content = login_view.build()
-        page.update()
+        self.page.update()
     
-    def show_register(self, page):
-        """Muestra la vista de registro"""
+    def show_register(self):
         register_view = RegisterView(
-            page=page,
-            on_register_success=lambda email: self.on_register_success(page, email),
-            on_login_click=lambda e: self.show_login(page)
+            page=self.page,
+            on_register_success=lambda email: self.on_register_success(email),
+            on_login_click=lambda e: self.show_login()
         )
         register_view.email_input.on_change = register_view.validate_email_format
         register_view.password_input.on_change = register_view.check_password_strength
         
         self.container.content = register_view.build()
-        page.update()
+        self.page.update()
     
-    def show_reset_password(self, page, token):
-        """Muestra la vista de restablecer contraseña"""
+    def show_reset_password(self, token):
         reset_view = ResetPasswordView(
-            page=page,
+            page=self.page,
             token=token,
-            on_success=lambda: self.show_login(page),
-            on_cancel=lambda: self.show_login(page)
+            on_success=lambda: self.show_login(),
+            on_cancel=lambda: self.show_login()
         )
         
-        # Agregar validador de contraseña en tiempo real
         reset_view.new_password.on_change = reset_view.check_password_strength
         
         self.container.content = reset_view.build()
-        page.update()
+        self.page.update()
     
-    def on_register_success(self, page, email):
-        """Callback cuando el registro es exitoso"""
+    def on_register_success(self, email):
         self.registered_email = email
-        self.show_login(page, prefill_email=email)
+        self.show_login(prefill_email=email)
     
-    def on_login_success(self, page):
-        """Callback cuando el login es exitoso"""
-        self.container.content = ft.Container(
-            content=ft.Column([
-                ft.Icon(ft.Icons.CHECK_CIRCLE_OUTLINE, size=60, color=ft.Colors.GREEN_400),
-                ft.Text("¡Login exitoso!", size=30, weight=ft.FontWeight.BOLD),
-                ft.Text("Redirigiendo al juego...", size=16),
-                ft.ProgressBar(width=200, color=ft.Colors.BLUE_400)
-            ], alignment=ft.MainAxisAlignment.CENTER,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-            alignment=ft.alignment.center,
-            padding=40
+    def on_login_success(self, user_data):
+        self.set_session("user_id", user_data.id_usuario)
+        self.set_session("username", user_data.username)
+        self.set_session("email", user_data.email)
+        self.current_user = user_data
+        
+        print(f"✅ Login exitoso: {user_data.username}")
+        self.show_dashboard()
+    
+    def show_dashboard(self):
+        """Muestra el dashboard principal del juego con las 3 pestañas"""
+        username = self.get_session("username", "Entrenador")
+        
+        def logout(e=None):
+            """Cierra sesión y vuelve al login"""
+            print("Cerrando sesión...")
+            self.clear_session()
+            self.current_user = None
+            self.page.views.clear()
+            self.page.add(self.container)
+            self.show_login()
+        
+        # Crear el dashboard
+        dashboard = DashboardView(
+            username=username,
+            on_logout=logout
         )
-        page.update()
+        
+        # Navegar al dashboard
+        self.page.views.clear()
+        self.page.views.append(dashboard)
+        self.page.go("/dashboard")
+        
+        print(f"🎮 Dashboard cargado para: {username}")
 
-def main():
-    """Función principal que inicia la aplicación"""
-    app = PokeClickerApp()
-    ft.app(target=app.main)
 
 if __name__ == "__main__":
-    main()
+    app = PokeClickerApp()
+    ft.app(target=app.main)

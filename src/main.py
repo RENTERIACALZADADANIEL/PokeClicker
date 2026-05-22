@@ -2,7 +2,9 @@ import flet as ft
 from views.login_view import LoginView
 from views.register_view import RegisterView
 from views.reset_password_view import ResetPasswordView
-from views.dashboard_view import DashboardView
+from tabs.principal_tab import principal_tab
+from tabs.tienda_tab import tienda_tab
+from tabs.ajustes_tab import ajustes_tab
 
 class PokeClickerApp:
     def __init__(self):
@@ -21,16 +23,17 @@ class PokeClickerApp:
         page.vertical_alignment = ft.MainAxisAlignment.CENTER
         page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
         
-        self.container = ft.Container(expand=True)
+        # Contenedor principal ÚNICO
+        self.main_container = ft.Container(expand=True)
+        page.add(self.main_container)
         
+        # Verificar token y mostrar vista inicial
         token = self.get_token_from_url(page)
         
         if token:
             self.show_reset_password(token)
         else:
             self.show_login()
-        
-        page.add(self.container)
     
     def get_token_from_url(self, page):
         try:
@@ -75,7 +78,8 @@ class PokeClickerApp:
             login_view.email_input.value = prefill_email
             login_view.register_success_text.value = "✅ ¡Registro exitoso! Ahora inicia sesión"
         
-        self.container.content = login_view.build()
+        self.main_container.content = login_view.build()
+        self.main_container.alignment = ft.Alignment.CENTER
         self.page.update()
     
     def show_register(self):
@@ -87,7 +91,8 @@ class PokeClickerApp:
         register_view.email_input.on_change = register_view.validate_email_format
         register_view.password_input.on_change = register_view.check_password_strength
         
-        self.container.content = register_view.build()
+        self.main_container.content = register_view.build()
+        self.main_container.alignment = ft.Alignment.CENTER
         self.page.update()
     
     def show_reset_password(self, token):
@@ -100,7 +105,8 @@ class PokeClickerApp:
         
         reset_view.new_password.on_change = reset_view.check_password_strength
         
-        self.container.content = reset_view.build()
+        self.main_container.content = reset_view.build()
+        self.main_container.alignment = ft.Alignment.CENTER
         self.page.update()
     
     def on_register_success(self, email):
@@ -117,28 +123,126 @@ class PokeClickerApp:
         self.show_dashboard()
     
     def show_dashboard(self):
-        """Muestra el dashboard principal del juego con las 3 pestañas"""
         username = self.get_session("username", "Entrenador")
         
         def logout(e=None):
-            """Cierra sesión y vuelve al login"""
             print("Cerrando sesión...")
             self.clear_session()
             self.current_user = None
-            self.page.views.clear()
-            self.page.add(self.container)
             self.show_login()
         
-        # Crear el dashboard
-        dashboard = DashboardView(
-            username=username,
-            on_logout=logout
+        # Contenedor del contenido de la pestaña
+        contenido_pagina = ft.Container(
+            content=principal_tab(),
+            expand=True
         )
         
-        # Navegar al dashboard
-        self.page.views.clear()
-        self.page.views.append(dashboard)
-        self.page.go("/dashboard")
+        # Cambiar de pestaña
+        def cambiar_tab(e):
+            opcion = e.control.selected_index
+            
+            if opcion == 0:
+                contenido_pagina.content = principal_tab()
+                appbar.bgcolor = ft.Colors.RED_700
+                appbar.title = ft.Text(f"Poke Clicker - {username}", weight=ft.FontWeight.BOLD)
+            elif opcion == 1:
+                contenido_pagina.content = tienda_tab()
+                appbar.bgcolor = ft.Colors.BLUE_700
+                appbar.title = ft.Text("Tienda Pokémon", weight=ft.FontWeight.BOLD)
+            elif opcion == 2:
+                contenido_pagina.content = ajustes_tab(logout)
+                appbar.bgcolor = ft.Colors.GREEN_700
+                appbar.title = ft.Text("Ajustes", weight=ft.FontWeight.BOLD)
+            
+            self.page.update()
+        
+        # Confirmar logout
+        def confirmar_logout(e):
+            def cerrar_sesion(e):
+                self.page.close(dialog)
+                logout()
+            
+            def cancelar(e):
+                self.page.close(dialog)
+            
+            dialog = ft.AlertDialog(
+                modal=True,
+                title=ft.Text("Cerrar Sesión"),
+                content=ft.Text("¿Estás seguro de que deseas cerrar sesión?"),
+                actions=[
+                    ft.TextButton("Cancelar", on_click=cancelar),
+                    ft.ElevatedButton(
+                        "Cerrar Sesión",
+                        on_click=cerrar_sesion,
+                        style=ft.ButtonStyle(
+                            bgcolor=ft.Colors.RED_700,
+                            color=ft.Colors.WHITE
+                        )
+                    ),
+                ],
+                actions_alignment=ft.MainAxisAlignment.END
+            )
+            
+            self.page.show_dialog(dialog)
+        
+        # NavigationBar
+        navigation_bar = ft.NavigationBar(
+            selected_index=0,
+            destinations=[
+                ft.NavigationBarDestination(
+                    icon=ft.Icons.HOME_OUTLINED,
+                    selected_icon=ft.Icons.HOME,
+                    label="Principal"
+                ),
+                ft.NavigationBarDestination(
+                    icon=ft.Icons.SHOPPING_CART_OUTLINED,
+                    selected_icon=ft.Icons.SHOPPING_CART,
+                    label="Tienda"
+                ),
+                ft.NavigationBarDestination(
+                    icon=ft.Icons.SETTINGS_OUTLINED,
+                    selected_icon=ft.Icons.SETTINGS,
+                    label="Ajustes"
+                ),
+            ],
+            on_change=cambiar_tab,
+            bgcolor=ft.Colors.WHITE,
+            indicator_color=ft.Colors.RED_100
+        )
+        
+        # AppBar
+        appbar = ft.AppBar(
+            leading=ft.Icon(ft.Icons.CATCHING_POKEMON),
+            leading_width=40,
+            title=ft.Text(f"Poke Clicker - {username}", weight=ft.FontWeight.BOLD),
+            center_title=False,
+            bgcolor=ft.Colors.RED_700,
+            color=ft.Colors.WHITE,
+            actions=[
+                ft.IconButton(
+                    icon=ft.Icons.LOGOUT,
+                    tooltip="Cerrar sesión",
+                    on_click=confirmar_logout
+                )
+            ]
+        )
+        
+        # Dashboard completo como columna
+        dashboard = ft.Column(
+            controls=[
+                appbar,
+                contenido_pagina,
+                navigation_bar
+            ],
+            expand=True,
+            spacing=0,
+            alignment=ft.MainAxisAlignment.START
+        )
+        
+        # Mostrar dashboard
+        self.main_container.content = dashboard
+        self.main_container.alignment = ft.Alignment.TOP_CENTER
+        self.page.update()
         
         print(f"🎮 Dashboard cargado para: {username}")
 

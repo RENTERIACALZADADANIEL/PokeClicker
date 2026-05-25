@@ -1,5 +1,5 @@
 from config.database import db
-from datetime import datetime
+from datetime import datetime, timedelta
 
 class GameProgress:
     """Modelo para el progreso del juego (clicks y rebirths)"""
@@ -14,7 +14,11 @@ class GameProgress:
         self.cantidad_rebirths = cantidad_rebirths
         self.costo_siguiente_rebirth = costo_siguiente_rebirth
         self.multiplicador_activo = multiplicador_activo
-        self.fin_boost = fin_boost
+        # Convertir fin_boost de string a datetime si es necesario
+        if isinstance(fin_boost, str):
+            self.fin_boost = datetime.fromisoformat(fin_boost)
+        else:
+            self.fin_boost = fin_boost
     
     def save(self):
         """Guarda o actualiza el progreso en la base de datos"""
@@ -24,7 +28,6 @@ class GameProgress:
         
         try:
             if self.id_progreso:
-                # Actualizar progreso existente
                 query = """
                     UPDATE progreso_juego 
                     SET clicks_actuales = %s, clicks_totales = %s, 
@@ -39,7 +42,6 @@ class GameProgress:
                     self.id_progreso
                 ))
             else:
-                # Crear nuevo progreso
                 query = """
                     INSERT INTO progreso_juego 
                     (id_usuario, clicks_actuales, clicks_totales, cantidad_rebirths, 
@@ -75,7 +77,10 @@ class GameProgress:
             data = cursor.fetchone()
             
             if data:
-                return GameProgress(**data)
+                progress = GameProgress(**data)
+                # Verificar si el boost expiró
+                progress.check_boost()
+                return progress
             
             # Si no existe, crear uno nuevo
             progress = GameProgress(id_usuario=user_id)
@@ -87,9 +92,24 @@ class GameProgress:
         finally:
             cursor.close()
     
+    def check_boost(self):
+        """Verifica si el boost ha expirado y lo desactiva"""
+        if self.fin_boost and datetime.now() > self.fin_boost:
+            self.multiplicador_activo = 1.0
+            self.fin_boost = None
+            self.save()
+    
+    def get_effective_multiplier(self):
+        """Obtiene el multiplicador efectivo (verificando boost)"""
+        self.check_boost()
+        return self.multiplicador_activo
+    
     def click(self):
         """Realiza un click (suma con multiplicador)"""
-        clicks_ganados = int(1 * self.multiplicador_activo)
+        # Verificar boost antes de calcular
+        multiplier = self.get_effective_multiplier()
+        clicks_ganados = int(1 * multiplier)
+        
         self.clicks_actuales += clicks_ganados
         self.clicks_totales += clicks_ganados
         return clicks_ganados
@@ -99,7 +119,13 @@ class GameProgress:
         return self.clicks_actuales >= self.costo_siguiente_rebirth
     
     def do_rebirth(self):
-        """Realiza un rebirth (reinicia clicks pero aumenta multiplicador)"""
+        """
+        Realiza un rebirth:
+        - Gasta los clicks necesarios
+        - Reinicia los clicks actuales a 0
+        - Activa boost de x1.25 por 5 minutos
+        - Aumenta el costo del siguiente rebirth en 50%
+        """
         if not self.can_rebirth():
             return False
         
@@ -109,8 +135,9 @@ class GameProgress:
         # Aumentar rebirths
         self.cantidad_rebirths += 1
         
-        # Aumentar multiplicador (10% por rebirth)
-        self.multiplicador_activo = 1.0 + (self.cantidad_rebirths * 0.1)
+        # Activar boost temporal de 5 minutos con x1.25
+        self.multiplicador_activo = 1.25
+        self.fin_boost = datetime.now() + timedelta(minutes=5)
         
         # Aumentar costo del siguiente rebirth (50% más)
         self.costo_siguiente_rebirth = int(self.costo_siguiente_rebirth * 1.5)
@@ -118,13 +145,26 @@ class GameProgress:
         self.save()
         return True
     
+    def get_boost_time_remaining(self):
+        """Obtiene el tiempo restante del boost en segundos"""
+        self.check_boost()
+        if self.fin_boost and self.multiplicador_activo > 1.0:
+            remaining = (self.fin_boost - datetime.now()).total_seconds()
+            return max(0, int(remaining))
+        return 0
+    
     def get_stats(self):
         """Obtiene estadísticas formateadas"""
+        self.check_boost()
+        boost_remaining = self.get_boost_time_remaining()
+        
         return {
             "clicks_actuales": self.clicks_actuales,
             "clicks_totales": self.clicks_totales,
             "cantidad_rebirths": self.cantidad_rebirths,
             "costo_siguiente_rebirth": self.costo_siguiente_rebirth,
             "multiplicador_activo": self.multiplicador_activo,
-            "puede_rebirth": self.can_rebirth()
+            "puede_rebirth": self.can_rebirth(),
+            "boost_activo": self.multiplicador_activo > 1.0,
+            "boost_tiempo_restante": boost_remaining
         }

@@ -5,6 +5,7 @@ from views.reset_password_view import ResetPasswordView
 from tabs.principal_tab import principal_tab
 from tabs.tienda_tab import tienda_tab
 from tabs.ajustes_tab import ajustes_tab
+from models.game_progress import GameProgress
 
 class PokeClickerApp:
     def __init__(self):
@@ -12,6 +13,7 @@ class PokeClickerApp:
         self.registered_email = None
         self._session_data = {}
         self.page = None
+        self.game_progress = None  # Progreso del juego actual
     
     def main(self, page: ft.Page):
         self.page = page
@@ -23,11 +25,9 @@ class PokeClickerApp:
         page.vertical_alignment = ft.MainAxisAlignment.CENTER
         page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
         
-        # Contenedor principal ÚNICO
         self.main_container = ft.Container(expand=True)
         page.add(self.main_container)
         
-        # Verificar token y mostrar vista inicial
         token = self.get_token_from_url(page)
         
         if token:
@@ -67,6 +67,7 @@ class PokeClickerApp:
     def show_login(self, prefill_email=None):
         self.clear_session()
         self.current_user = None
+        self.game_progress = None
         
         login_view = LoginView(
             page=self.page,
@@ -92,7 +93,7 @@ class PokeClickerApp:
         register_view.password_input.on_change = register_view.check_password_strength
         
         self.main_container.content = register_view.build()
-        self.main_container.alignment = ft.Alignment.CENTER
+        self.main_container.alignment = ft.alignment.center
         self.page.update()
     
     def show_reset_password(self, token):
@@ -106,7 +107,7 @@ class PokeClickerApp:
         reset_view.new_password.on_change = reset_view.check_password_strength
         
         self.main_container.content = reset_view.build()
-        self.main_container.alignment = ft.Alignment.CENTER
+        self.main_container.alignment = ft.alignment.center
         self.page.update()
     
     def on_register_success(self, email):
@@ -119,21 +120,122 @@ class PokeClickerApp:
         self.set_session("email", user_data.email)
         self.current_user = user_data
         
+        # Cargar progreso del juego
+        self.game_progress = GameProgress.get_by_user_id(user_data.id_usuario)
+        
         print(f"✅ Login exitoso: {user_data.username}")
         self.show_dashboard()
     
+    # ===== LÓGICA DEL JUEGO =====
+    
+    def do_click(self):
+        """Realiza un click en el juego"""
+        if not self.game_progress:
+            return
+        
+        # Hacer click y guardar
+        clicks_ganados = self.game_progress.click()
+        self.game_progress.save()
+        
+        print(f"⚡ Click! +{clicks_ganados} (Total: {self.game_progress.clicks_actuales})")
+        
+        # Actualizar la vista del dashboard
+        self.update_dashboard_view()
+    
+    def do_rebirth(self):
+        """Realiza un rebirth"""
+        if not self.game_progress:
+            return
+        
+        if self.game_progress.do_rebirth():
+            print(f"🔄 Rebirth #{self.game_progress.cantidad_rebirths}!")
+            
+            # Mostrar mensaje de éxito
+            def close_dialog(e):
+                self.page.close(dialog)
+                self.update_dashboard_view()
+            
+            dialog = ft.AlertDialog(
+                modal=True,
+                title=ft.Text("🌟 ¡Rebirth Exitoso!"),
+                content=ft.Text(
+                    f"Has alcanzado el rebirth #{self.game_progress.cantidad_rebirths}!\n\n"
+                    f"Multiplicador actual: x{self.game_progress.multiplicador_activo:.1f}\n"
+                    f"Próximo rebirth: {self.game_progress.costo_siguiente_rebirth:,} clicks"
+                ),
+                actions=[
+                    ft.ElevatedButton(
+                        "¡Entendido!",
+                        on_click=close_dialog,
+                        style=ft.ButtonStyle(
+                            bgcolor=ft.Colors.PURPLE_700,
+                            color=ft.Colors.WHITE
+                        )
+                    )
+                ],
+                actions_alignment=ft.MainAxisAlignment.END
+            )
+            
+            self.page.show_dialog(dialog)
+        else:
+            print("❌ No tienes suficientes clicks para rebirth")
+    
+    def update_dashboard_view(self):
+        """Actualiza la vista del dashboard con los datos actuales"""
+        if not self.game_progress:
+            return
+        
+        username = self.get_session("username", "Entrenador")
+        stats = self.game_progress.get_stats()
+        
+        # Reconstruir el contenido de la pestaña principal
+        self.contenido_pagina.content = principal_tab(
+            clicks_actuales=stats["clicks_actuales"],
+            clicks_totales=stats["clicks_totales"],
+            cantidad_rebirths=stats["cantidad_rebirths"],
+            costo_rebirth=stats["costo_siguiente_rebirth"],
+            multiplicador=stats["multiplicador_activo"],
+            puede_rebirth=stats["puede_rebirth"],
+            on_click=self.do_click,
+            on_rebirth=self.do_rebirth
+        )
+        
+        self.page.update()
+    
+    # ===== DASHBOARD =====
+    
     def show_dashboard(self):
         username = self.get_session("username", "Entrenador")
+        
+        # Obtener estadísticas iniciales
+        stats = self.game_progress.get_stats() if self.game_progress else {
+            "clicks_actuales": 0,
+            "clicks_totales": 0,
+            "cantidad_rebirths": 0,
+            "costo_siguiente_rebirth": 100,
+            "multiplicador_activo": 1.0,
+            "puede_rebirth": False
+        }
         
         def logout(e=None):
             print("Cerrando sesión...")
             self.clear_session()
             self.current_user = None
+            self.game_progress = None
             self.show_login()
         
         # Contenedor del contenido de la pestaña
-        contenido_pagina = ft.Container(
-            content=principal_tab(),
+        self.contenido_pagina = ft.Container(
+            content=principal_tab(
+                clicks_actuales=stats["clicks_actuales"],
+                clicks_totales=stats["clicks_totales"],
+                cantidad_rebirths=stats["cantidad_rebirths"],
+                costo_rebirth=stats["costo_siguiente_rebirth"],
+                multiplicador=stats["multiplicador_activo"],
+                puede_rebirth=stats["puede_rebirth"],
+                on_click=self.do_click,
+                on_rebirth=self.do_rebirth
+            ),
             expand=True
         )
         
@@ -142,15 +244,27 @@ class PokeClickerApp:
             opcion = e.control.selected_index
             
             if opcion == 0:
-                contenido_pagina.content = principal_tab()
+                # Actualizar pestaña principal con datos actuales
+                if self.game_progress:
+                    s = self.game_progress.get_stats()
+                    self.contenido_pagina.content = principal_tab(
+                        clicks_actuales=s["clicks_actuales"],
+                        clicks_totales=s["clicks_totales"],
+                        cantidad_rebirths=s["cantidad_rebirths"],
+                        costo_rebirth=s["costo_siguiente_rebirth"],
+                        multiplicador=s["multiplicador_activo"],
+                        puede_rebirth=s["puede_rebirth"],
+                        on_click=self.do_click,
+                        on_rebirth=self.do_rebirth
+                    )
                 appbar.bgcolor = ft.Colors.RED_700
                 appbar.title = ft.Text(f"Poke Clicker - {username}", weight=ft.FontWeight.BOLD)
             elif opcion == 1:
-                contenido_pagina.content = tienda_tab()
+                self.contenido_pagina.content = tienda_tab()
                 appbar.bgcolor = ft.Colors.BLUE_700
                 appbar.title = ft.Text("Tienda Pokémon", weight=ft.FontWeight.BOLD)
             elif opcion == 2:
-                contenido_pagina.content = ajustes_tab(logout)
+                self.contenido_pagina.content = ajustes_tab(logout)
                 appbar.bgcolor = ft.Colors.GREEN_700
                 appbar.title = ft.Text("Ajustes", weight=ft.FontWeight.BOLD)
             
@@ -227,11 +341,11 @@ class PokeClickerApp:
             ]
         )
         
-        # Dashboard completo como columna
+        # Dashboard completo
         dashboard = ft.Column(
             controls=[
                 appbar,
-                contenido_pagina,
+                self.contenido_pagina,
                 navigation_bar
             ],
             expand=True,
@@ -239,12 +353,12 @@ class PokeClickerApp:
             alignment=ft.MainAxisAlignment.START
         )
         
-        # Mostrar dashboard
         self.main_container.content = dashboard
         self.main_container.alignment = ft.Alignment.TOP_CENTER
         self.page.update()
         
         print(f"🎮 Dashboard cargado para: {username}")
+        print(f"📊 Stats: {stats}")
 
 
 if __name__ == "__main__":

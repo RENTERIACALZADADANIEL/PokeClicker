@@ -106,3 +106,4 @@ CREATE TABLE inventario_items (
 
 
 ---
+

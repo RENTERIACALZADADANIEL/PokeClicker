@@ -109,53 +109,92 @@ CREATE TABLE inventario_items (
 
 <<<<<<< HEAD
 =======
-#📊 Especificación de la Base de Datos: poke_clicker_db
-1. Entidad: usuarios
-Módulo encargado de gestionar la persistencia para las funciones de autenticación (Login, Registro, Recuperación) y las operaciones CRUD de los perfiles de usuario.
+# 🎮 Poke-Clicker
 
-id_usuario: Tipo de dato Entero (INT). Atributo obligatorio con propiedad de auto-incremento. Actúa como la Clave Primaria (PRIMARY KEY) de la entidad.
+**Poke-Clicker** es una aplicación móvil multiplataforma que fusiona las mecánicas de los videojuegos de tipo *Idle Clicker* (juegos incrementales) con el universo estratégico de Pokémon. El software implementa una arquitectura modular con una interfaz gráfica reactiva desarrollada en **Flet (v0.82.x)** y persistencia de datos relacional en **MySQL**, garantizando un sistema completamente validado, funcional y libre de errores.
 
-num_control: Tipo de dato Cadena de caracteres (VARCHAR) con longitud máxima de 20. Atributo obligatorio con restricción de unicidad (UNIQUE) para evitar registros duplicados.
+---
 
-nombre_usuario: Tipo de dato Cadena de caracteres (VARCHAR) con longitud máxima de 50. Atributo obligatorio.
+## 🚀 Descripción General del Proyecto
 
-correo: Tipo de dato Cadena de caracteres (VARCHAR) con longitud máxima de 100. Atributo obligatorio con restricción de unicidad (UNIQUE) para mitigar la duplicidad de cuentas.
+### 1. Propósito del Proyecto
+El propósito fundamental de este proyecto es ofrecer una experiencia de usuario fluida e interactiva donde la progresión del jugador se divide en dos vertientes:
+* **Progresión Activa:** Basada en la interacción directa del usuario mediante clics continuos en la interfaz principal para acumular recursos de forma inmediata.
+* **Progresión Pasiva:** Basada en la gestión estratégica y adquisición de mejoras automatizadas que generan recursos de forma constante a lo largo del tiempo (recursos por segundo).
 
-password: Tipo de dato Cadena de caracteres (VARCHAR) con longitud máxima de 255. Atributo obligatorio destinado al almacenamiento seguro de las credenciales de acceso.
+Desde una perspectiva técnica, el proyecto sirve como entorno de desarrollo para implementar patrones arquitectónicos de software, control de accesos seguro, persistencia de datos en tiempo real y operaciones CRUD síncronas.
 
-pokedolares: Tipo de dato Entero (INT). Define el saldo financiero del usuario con un valor predeterminado por defecto de cero.
+### 2. Alcance del Proyecto
+El alcance del sistema abarca el diseño del ciclo de juego completo (*Core Gameplay Loop*) y la infraestructura técnica de gestión de usuarios:
+* **Sistema de Clics y Recursos:** Registro exacto de las interacciones del usuario y cálculo de las ganancias obtenidas.
+* **Tienda de Mejoras (Upgrades):** Mecanismo funcional para comprar multiplicadores que modifican matemáticamente el valor de cada clic o activan la generación automática por segundo.
+* **Persistencia de Datos Robustecida:** Uso de un motor relacional SQL para eliminar la volatilidad del estado del juego, asegurando que el progreso no se pierda al cerrar la aplicación.
+* **Interfaz Modular (GUI):** Segmentación limpia de las pantallas del juego mediante pestañas independientes (`principal_tab.py`, `tienda_tab.py`, `ajustes_tab.py`).
 
-clics_totales: Tipo de dato Entero (INT). Registra la métrica acumulada de interacciones del usuario, inicializado por defecto en cero.
+---
 
-fecha_registro: Tipo de dato de marca temporal (TIMESTAMP). Registra de forma automatizada la fecha y hora exacta del alta del usuario mediante el valor del sistema (CURRENT_TIMESTAMP).
+## 🔐 Módulo de Autenticación, Usuarios y Gestión CRUD (Flet + MySQL)
 
-2. Entidad: mejoras
-Catálogo maestro que define los atributos, costos y factores de beneficio asociados a los objetos disponibles en la tienda del sistema.
+Este módulo comprende el sistema de seguridad, control de acceso y administración de datos. Está diseñado bajo estándares estrictos de validación tanto en el lado del cliente como del servidor.
 
-id_mejora: Tipo de dato Entero (INT). Atributo obligatorio con propiedad de auto-incremento. Actúa como la Clave Primaria (PRIMARY KEY) de la entidad.
+### 1. Características del Módulo
+* **Autenticación Segura (Login):** Control de acceso que valida las credenciales del usuario contra la base de datos antes de permitir la redirección a la interfaz del juego.
+* **Registro y Validación Obligatoria:** Mecanismo de alta para nuevos usuarios con validaciones estrictas (formatos de correo válidos, campos obligatorios y restricción de duplicados en números de control o correos).
+* **Recuperación de Contraseñas:** Flujo funcional para restablecer credenciales de forma segura en caso de pérdida, previa verificación de identidad en el sistema.
+* **Panel CRUD Integrado:** Interfaz gráfica completa construida en Flet para realizar operaciones de Creación, Lectura, Actualización y Eliminación (CRUD) directamente sobre las tablas de la base de datos.
 
-nombre: Tipo de dato Cadena de caracteres (VARCHAR) con longitud máxima de 50. Atributo obligatorio.
+### 2. Entidades y Flujo de Información
+El flujo de datos se gestiona a través de tres componentes o entidades clave dentro del modelo relacional:
 
-costo_base: Tipo de dato Entero (INT). Atributo obligatorio que especifica el costo financiero inicial requerido para la adquisición del objeto.
+1. **Usuario / Jugador (`usuarios`):** Almacena la identidad, credenciales de acceso (correo, contraseña, número de control) y el saldo financiero del juego (Pokédólares o clics totales).
+2. **Mejoras / Tienda (`mejoras`):** Catálogo maestro con los objetos disponibles para compra, definidos por su costo base, tipo de beneficio (activo/pasivo) y factor multiplicador.
+3. **Progreso / Inventario (`usuario_mejoras`):** Entidad asociativa (puente) que rompe la relación de muchos a muchos, registrando qué multiplicadores posee cada usuario específico y su nivel actual.
 
-multiplicador: Tipo de dato Decimal (DECIMAL 5,2), con una precisión total de 5 dígitos y 2 posiciones decimales. Atributo obligatorio que determina el impacto matemático en los algoritmos del juego.
+#### 🔄 Flujo de Información en el Sistema:
+* **Flujo de Registro:** El usuario ingresa sus datos en la GUI. El sistema valida las reglas de negocio (ej. formato de correo institucional o campos vacíos). Al confirmar, los datos se insertan limpiamente en la base de datos.
+* **Flujo de Inicio de Sesión:** Se capturan las credenciales. El sistema realiza una consulta (`SELECT`) filtrando por usuario/correo. Si coinciden los parámetros, se inicia la sesión activa en el entorno de Flet y se desbloquea el juego; de lo contrario, se despliega una alerta de error sin romper el flujo del programa.
+* **Flujo de Recuperación:** Se solicita el correo o número de control verificado. El sistema comprueba su existencia en la base de datos para autorizar el restablecimiento inmediato de la contraseña.
+* **Flujo de Juego y CRUD:** Al hacer clic en la pestaña principal, el controlador procesa el cambio, modifica el estado en memoria y actualiza la entidad `usuarios` en la base de datos. En la pestaña de la tienda, al comprar una mejora, se valida que el saldo sea suficiente, se descuenta el costo y se actualiza de forma síncrona la tabla asociativa `usuario_mejoras`.
 
-tipo: Tipo de dato de enumeración cerrada (ENUM). Restringe los valores estrictamente a las opciones fijas: 'activo' o 'pasivo'. Atributo obligatorio.
+---
 
-3. Entidad Relacional: usuario_mejoras
-Tabla asociativa que rompe la relación de muchos a muchos entre las entidades de usuarios y mejoras, encargada de la persistencia del progreso e inventario individual de cada jugador.
+## 📊 Arquitectura de Datos y Normalización (SQL)
 
-id_usuario: Tipo de dato Entero (INT). Atributo obligatorio que hereda la identidad del jugador.
+Para mitigar la redundancia de datos y prevenir anomalías, la base de datos ha sido estructurada aplicando criterios de **Normalización hasta la Tercera Forma Normal (3FN)**. Las restricciones de integridad (Llaves Foráneas - `FOREIGN KEY`) aseguran la consistencia referencial con políticas de actualización y borrado en cascada.
 
-id_mejora: Tipo de dato Entero (INT). Atributo obligatorio que mapea el objeto adquirido.
+A continuación se presenta la estructura analítica de la base de datos relacional requerida para el funcionamiento del sistema:
 
-nivel_actual: Tipo de dato Entero (INT). Registra el nivel de la mejora con un valor predeterminado por defecto de uno.
+### Base de Datos: poke_clicker_db
 
-Restricciones de Integridad Referencial:
-Clave Primaria Compuesta: La combinación única de los campos id_usuario e id_mejora constituye la clave primaria de esta tabla, previniendo duplicidades de un mismo objeto por usuario.
+#### 1. Tabla: usuarios
+Soporta los flujos de autenticación, control de accesos y el estado general de recursos del jugador.
+* **id_usuario:** Entero (`INT`), no nulo, auto-incremental. Llave Primaria.
+* **num_control:** Cadena (`VARCHAR(20)`), no nulo, único.
+* **nombre_usuario:** Cadena (`VARCHAR(50)`), no nulo.
+* **correo:** Cadena (`VARCHAR(100)`), no nulo, único.
+* **password:** Cadena (`VARCHAR(255)`), no nulo.
+* **pokedolares:** Entero (`INT`), valor por defecto 0.
+* **clics_totales:** Entero (`INT`), valor por defecto 0.
+* **fecha_registro:** Marca de tiempo (`TIMESTAMP`), valor por defecto el tiempo actual del sistema.
 
-Clave Foránea fk_usuario_autenticado: El atributo id_usuario se vincula con el campo homólogo de la tabla usuarios. Implementa políticas de integridad referencial ON DELETE CASCADE y ON UPDATE CASCADE.
+#### 2. Tabla: mejoras
+Catálogo centralizado de modificadores y elementos disponibles para la progresión económica interna.
+* **id_mejora:** Entero (`INT`), no nulo, auto-incremental. Llave Primaria.
+* **nombre:** Cadena (`VARCHAR(50)`), no nulo.
+* **costo_base:** Entero (`INT`), no nulo.
+* **multiplicador:** Decimal (`DECIMAL(5,2)`), no nulo.
+* **tipo:** Enumeración (`ENUM('activo', 'pasivo')`), no nulo.
 
-Clave Foránea fk_mejora_adquirida: El atributo id_mejora se vincula con el campo homólogo de la tabla mejoras. Implementa políticas de integridad referencial ON DELETE CASCADE y ON UPDATE CASCADE.
+#### 3. Tabla: usuario_mejoras
+Entidad relacional puente encargada de romper la relación de muchos a muchos y resguardar el inventario de las mejoras adquiridas.
+* **id_usuario:** Entero (`INT`), no nulo.
+* **id_mejora:** Entero (`INT`), no nulo.
+* **nivel_actual:** Entero (`INT`), valor por defecto 1.
 
-Especificaciones del Motor de Almacenamiento: El diseño de la base de datos se ejecuta bajo el motor transaccional InnoDB y emplea el conjunto de caracteres utf8mb4 para asegurar la consistencia del almacenamiento y compatibilidad internacional de datos.
+##### Restricciones de Integridad y Consistencia:
+* **Llave Primaria Compuesta:** Formada en conjunto por los campos `id_usuario` e `id_mejora`.
+* **Llave Foránea (fk_usuario_autenticado):** El campo `id_usuario` hace referencia a la tabla `usuarios` (`id_usuario`). Configurada con eliminación en cascada y actualización en cascada.
+* **Llave Foránea (fk_mejora_adquirida):** El campo `id_mejora` hace referencia a la tabla `mejoras` (`id_mejora`). Configurada con eliminación en cascada y actualización en cascada.
+
+---
+> **Nota del Sistema:** La base de datos opera bajo el motor transaccional **InnoDB** utilizando el set de caracteres **utf8mb4** para asegurar un soporte multilenguaje completo.

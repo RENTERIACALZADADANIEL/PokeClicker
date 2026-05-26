@@ -111,7 +111,7 @@ CREATE TABLE inventario_items (
 =======
 # 🎮 Poke-Clicker
 
-**Poke-Clicker** es una aplicación móvil multiplataforma que fusiona las mecánicas de los videojuegos de tipo *Idle Clicker* (juegos incrementales) con el universo estratégico de Pokémon. El software implementa una arquitectura modular con una interfaz gráfica reactiva desarrollada en **Flet (v0.82.x)** y persistencia de datos relacional en **MySQL**, garantizando un sistema completamente validado, funcional y libre de errores.
+**Poke-Clicker** es una aplicación móvil multiplataforma que fusiona las mecánicas de los videojuegos de tipo *Idle Clicker* (juegos incrementales) con el universo estratégico de Pokémon. El software implementa una arquitectura modular con una interfaz gráfica reactiva desarrollada en **Flet (v0.82.x)** y persistencia de datos relacional en **MySQL**, garantizando un sistema completamente validado, funcional y libre de errores.ss
 
 ---
 

@@ -154,7 +154,7 @@ El flujo de datos se gestiona a través de tres componentes o entidades clave de
 * **Flujo de Registro:** El usuario ingresa sus datos en la GUI. El sistema valida las reglas de negocio (ej. formato de correo institucional o campos vacíos). Al confirmar, los datos se insertan limpiamente en la base de datos.
 * **Flujo de Inicio de Sesión:** Se capturan las credenciales. El sistema realiza una consulta (`SELECT`) filtrando por usuario/correo. Si coinciden los parámetros, se inicia la sesión activa en el entorno de Flet y se desbloquea el juego; de lo contrario, se despliega una alerta de error sin romper el flujo del programa.
 * **Flujo de Recuperación:** Se solicita el correo o número de control verificado. El sistema comprueba su existencia en la base de datos para autorizar el restablecimiento inmediato de la contraseña.
-* **Flujo de Juego y CRUD:** Al hacer clic en la pestaña principal, el controlador procesa el cambio, modifica el estado en memoria y actualiza la entidad `usuarios` en la base de datos. En la pestaña de la tienda, al comprar una mejora, se valida que el saldo sea suficiente, se descuenta el costo y se actualiza de forma síncrona la tabla asociativa `usuario_mejoras`.
+* **Flujo de Juego y CRUD:** Al hacer clic en la pestaña principal, el controlador procesa el cambio, modifica el estado en memoria y actualiza la entidad `usuarios` en la base de datos. En la pestaña de la tienda, al comprar una mejora, se valida que el saldo sea suficiente, se descuenta el costo y se updatea de forma síncrona la tabla asociativa `usuario_mejoras`.
 
 ---
 
@@ -162,52 +162,39 @@ El flujo de datos se gestiona a través de tres componentes o entidades clave de
 
 Para mitigar la redundancia de datos y prevenir anomalías, la base de datos ha sido estructurada aplicando criterios de **Normalización hasta la Tercera Forma Normal (3FN)**. Las restricciones de integridad (Llaves Foráneas - `FOREIGN KEY`) aseguran la consistencia referencial con políticas de actualización y borrado en cascada.
 
-A continuación se presenta el script necesario para inicializar la base de datos relacional requerida para el funcionamiento del sistema:
+A continuación se presenta la estructura analítica de la base de datos relacional requerida para el funcionamiento del sistema:
 
-```sql
-CREATE DATABASE IF NOT EXISTS `poke_clicker_db`;
-USE `poke_clicker_db`;
+### Base de Datos: poke_clicker_db
 
--- -----------------------------------------------------
--- Tabla: usuarios (Soporta Login, Registro, Recuperación y CRUD)
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `usuarios` (
-  `id_usuario` INT NOT NULL AUTO_INCREMENT,
-  `num_control` VARCHAR(20) NOT NULL UNIQUE,
-  `nombre_usuario` VARCHAR(50) NOT NULL,
-  `correo` VARCHAR(100) NOT NULL UNIQUE,
-  `password` VARCHAR(255) NOT NULL,
-  `pokedolares` INT DEFAULT 0,
-  `clics_totales` INT DEFAULT 0,
-  `fecha_registro` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id_usuario`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+#### 1. Tabla: usuarios
+Soporta los flujos de autenticación, control de accesos y el estado general de recursos del jugador.
+* **id_usuario:** Entero (`INT`), no nulo, auto-incremental. Llave Primaria.
+* **num_control:** Cadena (`VARCHAR(20)`), no nulo, único.
+* **nombre_usuario:** Cadena (`VARCHAR(50)`), no nulo.
+* **correo:** Cadena (`VARCHAR(100)`), no nulo, único.
+* **password:** Cadena (`VARCHAR(255)`), no nulo.
+* **pokedolares:** Entero (`INT`), valor por defecto 0.
+* **clics_totales:** Entero (`INT`), valor por defecto 0.
+* **fecha_registro:** Marca de tiempo (`TIMESTAMP`), valor por defecto el tiempo actual del sistema.
 
--- -----------------------------------------------------
--- Tabla: mejoras (Catálogo para operaciones del juego)
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `mejoras` (
-  `id_mejora` INT NOT NULL AUTO_INCREMENT,
-  `nombre` VARCHAR(50) NOT NULL,
-  `costo_base` INT NOT NULL,
-  `multiplicador` DECIMAL(5,2) NOT NULL,
-  `tipo` ENUM('activo', 'pasivo') NOT NULL,
-  PRIMARY KEY (`id_mejora`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+#### 2. Tabla: mejoras
+Catálogo centralizado de modificadores y elementos disponibles para la progresión económica interna.
+* **id_mejora:** Entero (`INT`), no nulo, auto-incremental. Llave Primaria.
+* **nombre:** Cadena (`VARCHAR(50)`), no nulo.
+* **costo_base:** Entero (`INT`), no nulo.
+* **multiplicador:** Decimal (`DECIMAL(5,2)`), no nulo.
+* **tipo:** Enumeración (`ENUM('activo', 'pasivo')`), no nulo.
 
--- -----------------------------------------------------
--- Tabla: usuario_mejoras (Relación de Progreso - CRUD relacional)
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `usuario_mejoras` (
-  `id_usuario` INT NOT NULL,
-  `id_mejora` INT NOT NULL,
-  `nivel_actual` INT DEFAULT 1,
-  PRIMARY KEY (`id_usuario`, `id_mejora`),
-  CONSTRAINT `fk_usuario_autenticado` 
-    FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id_usuario`) 
-    ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `fk_mejora_adquirida` 
-    FOREIGN KEY (`id_mejora`) REFERENCES `mejoras` (`id_mejora`) 
-    ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
->>>>>>> 2104ea69582c21cb38cbd050668a364cbbf9c37b
+#### 3. Tabla: usuario_mejoras
+Entidad relacional puente encargada de romper la relación de muchos a muchos y resguardar el inventario de las mejoras adquiridas.
+* **id_usuario:** Entero (`INT`), no nulo.
+* **id_mejora:** Entero (`INT`), no nulo.
+* **nivel_actual:** Entero (`INT`), valor por defecto 1.
+
+##### Restricciones de Integridad y Consistencia:
+* **Llave Primaria Compuesta:** Formada en conjunto por los campos `id_usuario` e `id_mejora`.
+* **Llave Foránea (fk_usuario_autenticado):** El campo `id_usuario` hace referencia a la tabla `usuarios` (`id_usuario`). Configurada con eliminación en cascada y actualización en cascada.
+* **Llave Foránea (fk_mejora_adquirida):** El campo `id_mejora` hace referencia a la tabla `mejoras` (`id_mejora`). Configurada con eliminación en cascada y actualización en cascada.
+
+---
+> **Nota del Sistema:** La base de datos opera bajo el motor transaccional **InnoDB** utilizando el set de caracteres **utf8mb4** para asegurar un soporte multilenguaje completo.

@@ -50,63 +50,6 @@ El diseño lógico de la base de datos está optimizado para gestionar de manera
 *El diagrama anterior detalla las relaciones entre las entidades de Usuario, Progreso, Tienda, Inventario y Pokémon obtenidos.*
 
 ---
-
-##  Implementación Técnica (SQL)
-
-A continuación, se presenta el script necesario para generar la estructura de tablas y las restricciones de integridad (llaves foráneas) que aseguran la consistencia de los datos.
-
-```sql
-CREATE TABLE usuarios (
-    id_usuario INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL,
-    email VARCHAR(100) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,
-    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE progreso_juego (
-    id_progreso INT AUTO_INCREMENT PRIMARY KEY,
-    id_usuario INT NOT NULL,
-    clicks_actuales BIGINT DEFAULT 0,
-    clicks_totales BIGINT DEFAULT 0,
-    cantidad_rebirths INT DEFAULT 0,
-    costo_siguiente_rebirth BIGINT DEFAULT 100,
-    multiplicador_activo FLOAT DEFAULT 1.0,
-    fin_boost DATETIME NULL,
-    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
-);
-
-CREATE TABLE tienda (
-    id_producto INT AUTO_INCREMENT PRIMARY KEY,
-    nombre_producto VARCHAR(100) NOT NULL,
-    descripcion TEXT,
-    categoria ENUM('item', 'pokemon', 'boost') NOT NULL,
-    costo_rebirths INT NOT NULL,
-    valor_efecto FLOAT NOT NULL
-);
-
-CREATE TABLE pokemones_obtenidos (
-    id_instancia INT AUTO_INCREMENT PRIMARY KEY,
-    id_usuario INT NOT NULL,
-    pokemon_api_id INT NOT NULL,
-    nombre_personalizado VARCHAR(50),
-    nivel INT DEFAULT 1,
-    esta_equipado BOOLEAN DEFAULT FALSE,
-    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
-);
-
-CREATE TABLE inventario_items (
-    id_item_inv INT AUTO_INCREMENT PRIMARY KEY,
-    id_usuario INT NOT NULL,
-    id_producto INT NOT NULL,
-    cantidad INT DEFAULT 1,
-    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
-    FOREIGN KEY (id_producto) REFERENCES tienda(id_producto) ON DELETE CASCADE
-);
-
-
----
-
 <<<<<<< HEAD
 =======
 Poke-Clicker es una aplicación móvil multiplataforma que fusiona las mecánicas de los videojuegos de tipo Idle Clicker (juegos incrementales) con el universo estratégico de Pokémon. El software implementa una arquitectura modular con una interfaz gráfica reactiva desarrollada en Flet (v0.82.x) y persistencia de datos relacional en MySQL, garantizando un sistema completamente validado, funcional y libre de errores.
@@ -184,3 +127,60 @@ Restricciones de Integridad y Consistencia:
 - Llave Foránea (fk_mejora_adquirida): El campo id_mejora hace referencia a la tabla mejoras (id_mejora). Configurada con eliminación en cascada y actualización en cascada.
 
 Nota del Sistema: La base de datos opera bajo el motor transaccional InnoDB utilizando el set de caracteres utf8mb4 para asegurar un soporte multilenguaje completo.
+
+##  Implementación Técnica (SQL)
+
+A continuación, se presenta el script necesario para generar la estructura de tablas y las restricciones de integridad (llaves foráneas) que aseguran la consistencia de los datos.
+
+```sql
+CREATE TABLE usuarios (
+    id_usuario INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE progreso_juego (
+    id_progreso INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario INT NOT NULL,
+    clicks_actuales BIGINT DEFAULT 0,
+    clicks_totales BIGINT DEFAULT 0,
+    cantidad_rebirths INT DEFAULT 0,
+    costo_siguiente_rebirth BIGINT DEFAULT 100,
+    multiplicador_activo FLOAT DEFAULT 1.0,
+    fin_boost DATETIME NULL,
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
+);
+
+CREATE TABLE tienda (
+    id_producto INT AUTO_INCREMENT PRIMARY KEY,
+    nombre_producto VARCHAR(100) NOT NULL,
+    descripcion TEXT,
+    categoria ENUM('item', 'pokemon', 'boost') NOT NULL,
+    costo_rebirths INT NOT NULL,
+    valor_efecto FLOAT NOT NULL
+);
+
+CREATE TABLE pokemones_obtenidos (
+    id_instancia INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario INT NOT NULL,
+    pokemon_api_id INT NOT NULL,
+    nombre_personalizado VARCHAR(50),
+    nivel INT DEFAULT 1,
+    esta_equipado BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
+);
+
+CREATE TABLE inventario_items (
+    id_item_inv INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario INT NOT NULL,
+    id_producto INT NOT NULL,
+    cantidad INT DEFAULT 1,
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
+    FOREIGN KEY (id_producto) REFERENCES tienda(id_producto) ON DELETE CASCADE
+);
+
+
+---
+

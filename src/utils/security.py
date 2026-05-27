@@ -1,7 +1,8 @@
 import bcrypt
-import jwt
+import secrets
+import string
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import smtplib
 from email.mime.text import MIMEText
@@ -9,25 +10,41 @@ from email.mime.multipart import MIMEMultipart
 
 load_dotenv()
 
-# Configuración JWT
-SECRET_KEY = os.getenv('SECRET_KEY', 'poke_clicker_default_secret_key_2024')
-TOKEN_EXPIRATION = int(os.getenv('TOKEN_EXPIRATION_MINUTES', '30'))  # 30 minutos por defecto
-ALGORITHM = "HS256"
+# Configuración
+TOKEN_EXPIRATION = int(os.getenv('TOKEN_EXPIRATION_MINUTES', '5'))  # 5 minutos
 DEBUG_MODE = os.getenv('DEBUG_MODE', 'false').lower() == 'true'
 
-# ===== FUNCIONES DE CONTRASEÑA =====
+# Almacenamiento temporal de tokens (en producción usar BD o Redis)
+_reset_tokens = {}  # {token: {"user_id": 1, "email": "...", "expires": datetime}}
+
+# ============================================================
+# FUNCIONES DE CONTRASEÑA
+# ============================================================
 
 def hash_password(password: str) -> str:
     """
-    Hashea una contraseña usando bcrypt con salt automático
+    Hashea una contraseña usando bcrypt
+    
+    Args:
+        password: Contraseña en texto plano
+        
+    Returns:
+        str: Hash de la contraseña
     """
-    salt = bcrypt.gensalt(rounds=12)  # 12 rounds es seguro y eficiente
+    salt = bcrypt.gensalt(rounds=12)
     hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
     return hashed.decode('utf-8')
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
     Verifica una contraseña contra su hash
+    
+    Args:
+        plain_password: Contraseña en texto plano
+        hashed_password: Hash almacenado
+        
+    Returns:
+        bool: True si coinciden
     """
     try:
         return bcrypt.checkpw(
@@ -37,66 +54,106 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     except Exception:
         return False
 
-# ===== FUNCIONES JWT =====
+# ============================================================
+# FUNCIONES DE TOKEN (6 caracteres)
+# ============================================================
 
-def generate_token(user_id: int, email: str, token_type: str = 'password_reset') -> str:
+def generate_reset_token() -> str:
     """
-    Genera un token JWT para recuperación de contraseña
+    Genera un token único de 6 caracteres (letras mayúsculas + números)
+    
+    Ejemplo: "A7B2X9"
+    
+    Usa secrets.choice() para ser criptográficamente seguro
     """
-    now = datetime.now(timezone.utc)
-    payload = {
-        'user_id': user_id,
-        'email': email,
-        'exp': now + timedelta(minutes=TOKEN_EXPIRATION),
-        'iat': now,
-        'type': token_type
+    alphabet = string.ascii_uppercase + string.digits
+    return ''.join(secrets.choice(alphabet) for _ in range(6))
+
+def store_reset_token(user_id: int, email: str) -> str:
+    """
+    Genera y almacena un token de recuperación
+    
+    Args:
+        user_id: ID del usuario
+        email: Email del usuario
+        
+    Returns:
+        str: Token generado
+    """
+    # Limpiar tokens expirados primero
+    clean_expired_tokens()
+    
+    # Generar token único (evitar colisiones)
+    token = generate_reset_token()
+    while token in _reset_tokens:
+        token = generate_reset_token()
+    
+    # Almacenar token con expiración
+    _reset_tokens[token] = {
+        "user_id": user_id,
+        "email": email,
+        "expires": datetime.now() + timedelta(minutes=TOKEN_EXPIRATION)
     }
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    
+    return token
 
-def verify_token(token: str) -> dict:
+def verify_reset_token(token: str) -> dict | None:
     """
-    Verifica y decodifica un token JWT
-    Returns: dict con payload o None si es inválido
+    Verifica un token de recuperación
+    
+    Args:
+        token: Token de 6 caracteres
+        
+    Returns:
+        dict: Datos del token {"user_id", "email"} o None si es inválido/expirado
     """
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        
-        # Verificar que sea un token de recuperación
-        if payload.get('type') != 'password_reset':
-            print("❌ Tipo de token inválido")
-            return None
-        
-        return payload
-        
-    except jwt.ExpiredSignatureError:
-        print("❌ Token expirado")
+    # Limpiar tokens expirados
+    clean_expired_tokens()
+    
+    # Buscar token
+    token_data = _reset_tokens.get(token)
+    
+    if not token_data:
         return None
-    except jwt.InvalidTokenError as e:
-        print(f"❌ Token inválido: {e}")
+    
+    # Verificar expiración
+    if datetime.now() > token_data["expires"]:
+        del _reset_tokens[token]
         return None
-    except Exception as e:
-        print(f"❌ Error verificando token: {e}")
-        return None
+    
+    return {
+        "user_id": token_data["user_id"],
+        "email": token_data["email"]
+    }
 
-def decode_token(token: str) -> dict:
-    """
-    Decodifica un token JWT sin verificar (solo para debugging)
-    """
-    try:
-        return jwt.decode(token, options={"verify_signature": False})
-    except Exception:
-        return {}
+def delete_reset_token(token: str):
+    """Elimina un token después de usarlo"""
+    if token in _reset_tokens:
+        del _reset_tokens[token]
 
-# ===== FUNCIONES DE EMAIL =====
+def clean_expired_tokens():
+    """Elimina tokens expirados del almacenamiento"""
+    now = datetime.now()
+    expired = [t for t, d in _reset_tokens.items() if now > d["expires"]]
+    for token in expired:
+        del _reset_tokens[token]
+
+# ============================================================
+# FUNCIONES DE EMAIL
+# ============================================================
 
 def send_reset_email(email: str, token: str, username: str) -> bool:
     """
-    Envía un correo de recuperación de contraseña
-    Returns: True si se envió correctamente, False si hubo error
-    """
-    # Enlace para la aplicación Flet
-    reset_link = f"http://localhost:8550?token={token}"
+    Envía un correo de recuperación con el token de 6 caracteres
     
+    Args:
+        email: Email del destinatario
+        token: Token de 6 caracteres
+        username: Nombre de usuario
+        
+    Returns:
+        bool: True si se envió correctamente
+    """
     # Si estamos en modo debug, mostramos el token en consola
     if DEBUG_MODE:
         print(f"""
@@ -106,7 +163,6 @@ def send_reset_email(email: str, token: str, username: str) -> bool:
         ║  Para: {email:<44}║
         ║  Usuario: {username:<41}║
         ║  Token: {token:<45}║
-        ║  Enlace: {reset_link:<43}║
         ║  Expira en: {TOKEN_EXPIRATION} minutos{'':<35}║
         ╚══════════════════════════════════════════════════════╝
         """)
@@ -141,9 +197,9 @@ def send_reset_email(email: str, token: str, username: str) -> bool:
                 .container {{ max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }}
                 .header {{ text-align: center; color: #E53935; font-size: 24px; font-weight: bold; margin-bottom: 20px; }}
                 .content {{ color: #333; line-height: 1.6; }}
-                .button {{ display: inline-block; background-color: #E53935; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }}
+                .token-box {{ background: #FFF3CD; border: 2px dashed #FFC107; padding: 20px; border-radius: 10px; text-align: center; margin: 20px 0; }}
+                .token {{ font-family: 'Courier New', monospace; font-size: 36px; font-weight: bold; color: #E53935; letter-spacing: 8px; }}
                 .warning {{ background-color: #FFF3CD; color: #856404; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #FFC107; }}
-                .token-box {{ background: #f5f5f5; padding: 15px; border-radius: 5px; font-family: 'Courier New', monospace; font-size: 12px; word-break: break-all; margin: 20px 0; }}
                 .footer {{ text-align: center; color: #999; font-size: 12px; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }}
             </style>
         </head>
@@ -152,24 +208,20 @@ def send_reset_email(email: str, token: str, username: str) -> bool:
                 <div class="header">🔑 Recupera tu Contraseña</div>
                 <div class="content">
                     <p>Hola <strong>{username}</strong>,</p>
-                    <p>Hemos recibido una solicitud para restablecer la contraseña de tu cuenta en <strong>Poke Clicker</strong>.</p>
+                    <p>Has solicitado restablecer tu contraseña en <strong>Poke Clicker</strong>.</p>
+                    <p>Usa el siguiente código en la aplicación:</p>
                     
-                    <center>
-                        <a href="{reset_link}" class="button">🔗 Restablecer Contraseña</a>
-                    </center>
-                    
-                    <p>Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
-                    <p style="color: #E53935; word-break: break-all; font-size: 13px;">{reset_link}</p>
-                    
-                    <p><strong>O también puedes usar este token directamente en la aplicación:</strong></p>
-                    <div class="token-box">{token}</div>
+                    <div class="token-box">
+                        <p style="margin:0; color:#666; font-size:14px;">Tu código de recuperación:</p>
+                        <div class="token">{token}</div>
+                    </div>
                     
                     <div class="warning">
                         <strong>⚠️ Importante:</strong>
                         <ul style="margin: 5px 0; padding-left: 20px;">
-                            <li>Este enlace expirará en <strong>{TOKEN_EXPIRATION} minutos</strong></li>
+                            <li>Este código expirará en <strong>{TOKEN_EXPIRATION} minutos</strong></li>
                             <li>Si no solicitaste este cambio, ignora este mensaje</li>
-                            <li>Nunca compartas este enlace con nadie</li>
+                            <li>Nunca compartas este código con nadie</li>
                         </ul>
                     </div>
                     
@@ -198,16 +250,10 @@ def send_reset_email(email: str, token: str, username: str) -> bool:
         
     except smtplib.SMTPAuthenticationError:
         print("❌ Error de autenticación: Verifica tu email y contraseña de aplicación")
-        if DEBUG_MODE:
-            print(f"🔑 Token para recuperación: {token}")
         return False
     except smtplib.SMTPException as e:
         print(f"❌ Error SMTP: {e}")
-        if DEBUG_MODE:
-            print(f"🔑 Token para recuperación: {token}")
         return False
     except Exception as e:
         print(f"❌ Error inesperado al enviar correo: {e}")
-        if DEBUG_MODE:
-            print(f"🔑 Token para recuperación: {token}")
         return False

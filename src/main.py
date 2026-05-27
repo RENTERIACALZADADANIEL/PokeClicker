@@ -1,7 +1,6 @@
 import flet as ft
 from views.login_view import LoginView
 from views.register_view import RegisterView
-from views.reset_password_view import ResetPasswordView
 from tabs.principal_tab import principal_tab
 from tabs.tienda_tab import tienda_tab
 from tabs.ajustes_tab import ajustes_tab
@@ -10,6 +9,14 @@ import threading
 import time
 
 class PokeClickerApp:
+    """
+    Aplicación principal PokeClicker
+    
+    Patrón: Navegación por contenido dinámico
+    - Usa un solo contenedor (self.main_container)
+    - Cambia el contenido para navegar entre pantallas
+    """
+    
     def __init__(self):
         self.current_user = None
         self.registered_email = None
@@ -17,10 +24,20 @@ class PokeClickerApp:
         self.page = None
         self.game_progress = None
         self.boost_timer = None
+        self.main_container = None
+        self.contenido_pagina = None
+        self.appbar = None
+        self.navigation_bar = None
+    
+    # ============================================================
+    # PUNTO DE ENTRADA
+    # ============================================================
     
     def main(self, page: ft.Page):
+        """Punto de entrada de la aplicación Flet"""
         self.page = page
         
+        # Configuración de la ventana
         page.title = "Poke Clicker"
         page.window.width = 420
         page.window.height = 750
@@ -28,51 +45,37 @@ class PokeClickerApp:
         page.vertical_alignment = ft.MainAxisAlignment.CENTER
         page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
         
+        # Contenedor principal (único para toda la app)
         self.main_container = ft.Container(expand=True)
         page.add(self.main_container)
         
-        token = self.get_token_from_url(page)
-        
-        if token:
-            self.show_reset_password(token)
-        else:
-            self.show_login()
+        # Mostrar pantalla de login directamente
+        self.show_login()
     
-    def get_token_from_url(self, page):
-        try:
-            if hasattr(page, 'query') and page.query:
-                if isinstance(page.query, dict):
-                    return page.query.get("token")
-                elif isinstance(page.query, str) and "token=" in page.query:
-                    import urllib.parse
-                    params = urllib.parse.parse_qs(page.query)
-                    return params.get("token", [None])[0]
-            
-            import sys
-            for arg in sys.argv:
-                if arg.startswith("--token="):
-                    return arg.replace("--token=", "")
-            
-            return None
-        except Exception as e:
-            print(f"Error al obtener token (ignorado): {e}")
-            return None
+    # ============================================================
+    # UTILIDADES DE SESIÓN
+    # ============================================================
     
     def set_session(self, key, value):
+        """Guarda un valor en la sesión"""
         self._session_data[key] = value
     
     def get_session(self, key, default=None):
+        """Obtiene un valor de la sesión"""
         return self._session_data.get(key, default)
     
     def clear_session(self):
+        """Limpia todos los datos de sesión"""
         self._session_data.clear()
         if self.boost_timer:
             self.boost_timer = None
     
-    # ===== MÉTODO AUXILIAR PARA DIÁLOGOS =====
+    # ============================================================
+    # DIÁLOGOS
+    # ============================================================
     
     def mostrar_dialogo(self, dialog):
-        """Muestra un diálogo de forma compatible"""
+        """Muestra un diálogo"""
         self.page.dialog = dialog
         dialog.open = True
         self.page.update()
@@ -84,9 +87,12 @@ class PokeClickerApp:
             self.page.dialog = None
             self.page.update()
     
-    # ===== NAVEGACIÓN =====
+    # ============================================================
+    # NAVEGACIÓN ENTRE PANTALLAS
+    # ============================================================
     
     def show_login(self, prefill_email=None):
+        """Muestra la pantalla de inicio de sesión"""
         self.clear_session()
         self.current_user = None
         self.game_progress = None
@@ -106,11 +112,13 @@ class PokeClickerApp:
         self.page.update()
     
     def show_register(self):
+        """Muestra la pantalla de registro"""
         register_view = RegisterView(
             page=self.page,
             on_register_success=lambda email: self.on_register_success(email),
             on_login_click=lambda e: self.show_login()
         )
+        
         register_view.email_input.on_change = register_view.validate_email_format
         register_view.password_input.on_change = register_view.check_password_strength
         
@@ -118,38 +126,34 @@ class PokeClickerApp:
         self.main_container.alignment = ft.Alignment.CENTER
         self.page.update()
     
-    def show_reset_password(self, token):
-        reset_view = ResetPasswordView(
-            page=self.page,
-            token=token,
-            on_success=lambda: self.show_login(),
-            on_cancel=lambda: self.show_login()
-        )
-        
-        reset_view.new_password.on_change = reset_view.check_password_strength
-        
-        self.main_container.content = reset_view.build()
-        self.main_container.alignment = ft.alignment.center
-        self.page.update()
+    
+    # CALLBACKS DE AUTENTICACION
+    
     
     def on_register_success(self, email):
+        """Callback cuando el registro es exitoso"""
         self.registered_email = email
         self.show_login(prefill_email=email)
     
     def on_login_success(self, user_data):
+        """Callback cuando el login es exitoso"""
         self.set_session("user_id", user_data.id_usuario)
         self.set_session("username", user_data.username)
         self.set_session("email", user_data.email)
         self.current_user = user_data
         
+        # Cargar progreso del juego
         self.game_progress = GameProgress.get_by_user_id(user_data.id_usuario)
         
         print(f"✅ Login exitoso: {user_data.username}")
         self.show_dashboard()
     
-    # ===== LÓGICA DEL JUEGO =====
+    # ============================================================
+    # LÓGICA DEL JUEGO
+    # ============================================================
     
     def do_click(self):
+        """Realiza un click en el juego"""
         if not self.game_progress:
             return
         
@@ -160,6 +164,7 @@ class PokeClickerApp:
         self.update_dashboard_view()
     
     def do_rebirth(self):
+        """Realiza un rebirth con boost temporal"""
         if not self.game_progress:
             return
         
@@ -203,6 +208,7 @@ class PokeClickerApp:
             self.mostrar_dialogo(dialog)
     
     def start_boost_timer(self):
+        """Inicia un timer para actualizar la UI durante el boost"""
         def update_loop():
             while self.game_progress and self.game_progress.get_boost_time_remaining() > 0:
                 time.sleep(1)
@@ -220,6 +226,7 @@ class PokeClickerApp:
         timer.start()
     
     def update_dashboard_view(self):
+        """Actualiza la vista del dashboard con los datos actuales"""
         if not self.game_progress or not hasattr(self, 'contenido_pagina'):
             return
         
@@ -243,9 +250,12 @@ class PokeClickerApp:
         except Exception as e:
             print(f"Error actualizando dashboard: {e}")
     
-    # ===== DASHBOARD =====
+    # ============================================================
+    # DASHBOARD
+    # ============================================================
     
     def show_dashboard(self):
+        """Construye y muestra el dashboard principal del juego"""
         username = self.get_session("username", "Entrenador")
         
         stats = self.game_progress.get_stats() if self.game_progress else {
@@ -300,16 +310,16 @@ class PokeClickerApp:
                         on_click=self.do_click,
                         on_rebirth=self.do_rebirth
                     )
-                appbar.bgcolor = ft.Colors.RED_700
-                appbar.title = ft.Text(f"Poke Clicker - {username}", weight=ft.FontWeight.BOLD)
+                self.appbar.bgcolor = ft.Colors.RED_700
+                self.appbar.title = ft.Text(f"Poke Clicker - {username}", weight=ft.FontWeight.BOLD)
             elif opcion == 1:
                 self.contenido_pagina.content = tienda_tab()
-                appbar.bgcolor = ft.Colors.BLUE_700
-                appbar.title = ft.Text("Tienda Pokémon", weight=ft.FontWeight.BOLD)
+                self.appbar.bgcolor = ft.Colors.BLUE_700
+                self.appbar.title = ft.Text("Tienda Pokémon", weight=ft.FontWeight.BOLD)
             elif opcion == 2:
                 self.contenido_pagina.content = ajustes_tab(logout)
-                appbar.bgcolor = ft.Colors.GREEN_700
-                appbar.title = ft.Text("Ajustes", weight=ft.FontWeight.BOLD)
+                self.appbar.bgcolor = ft.Colors.GREEN_700
+                self.appbar.title = ft.Text("Ajustes", weight=ft.FontWeight.BOLD)
             
             self.page.update()
         
@@ -341,7 +351,7 @@ class PokeClickerApp:
             
             self.mostrar_dialogo(dialog)
         
-        navigation_bar = ft.NavigationBar(
+        self.navigation_bar = ft.NavigationBar(
             selected_index=0,
             destinations=[
                 ft.NavigationBarDestination(
@@ -365,7 +375,7 @@ class PokeClickerApp:
             indicator_color=ft.Colors.RED_100
         )
         
-        appbar = ft.AppBar(
+        self.appbar = ft.AppBar(
             leading=ft.Icon(ft.Icons.CATCHING_POKEMON),
             leading_width=40,
             title=ft.Text(f"Poke Clicker - {username}", weight=ft.FontWeight.BOLD),
@@ -383,9 +393,9 @@ class PokeClickerApp:
         
         dashboard = ft.Column(
             controls=[
-                appbar,
+                self.appbar,
                 self.contenido_pagina,
-                navigation_bar
+                self.navigation_bar
             ],
             expand=True,
             spacing=0,

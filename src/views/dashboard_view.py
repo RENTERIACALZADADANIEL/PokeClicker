@@ -1,7 +1,7 @@
 import flet as ft
 from tabs.principal_tab import principal_tab
 from tabs.tienda_tab import tienda_tab
-from tabs.ajustes_tab import ajustes_tab
+from tabs.inventario_tab import ajustes_tab
 
 class DashboardView(ft.View):
     def __init__(self, username: str, on_logout):

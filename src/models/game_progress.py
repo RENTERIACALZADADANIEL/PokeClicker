@@ -78,7 +78,6 @@ class GameProgress:
             
             if data:
                 progress = GameProgress(**data)
-                # Verificar si el boost expiró
                 progress.check_boost()
                 return progress
             
@@ -106,7 +105,6 @@ class GameProgress:
     
     def click(self):
         """Realiza un click (suma con multiplicador)"""
-        # Verificar boost antes de calcular
         multiplier = self.get_effective_multiplier()
         clicks_ganados = int(1 * multiplier)
         
@@ -129,21 +127,42 @@ class GameProgress:
         if not self.can_rebirth():
             return False
         
-        # Gastar clicks
         self.clicks_actuales -= self.costo_siguiente_rebirth
-        
-        # Aumentar rebirths
         self.cantidad_rebirths += 1
-        
-        # Activar boost temporal de 5 minutos con x1.25
         self.multiplicador_activo = 1.25
         self.fin_boost = datetime.now() + timedelta(minutes=5)
-        
-        # Aumentar costo del siguiente rebirth (50% más)
         self.costo_siguiente_rebirth = int(self.costo_siguiente_rebirth * 1.5)
         
         self.save()
         return True
+    
+    def spend_rebirths(self, amount: int) -> bool:
+        """
+        Gasta rebirths para comprar items en la tienda
+        
+        Args:
+            amount: Cantidad de rebirths a gastar
+            
+        Returns:
+            bool: True si tenía suficientes rebirths
+        """
+        if self.cantidad_rebirths >= amount:
+            self.cantidad_rebirths -= amount
+            self.save()
+            return True
+        return False
+    
+    def activate_boost(self, multiplier: float, minutes: int):
+        """
+        Activa un boost comprado en la tienda
+        
+        Args:
+            multiplier: Multiplicador (ej: 2.0 para x2)
+            minutes: Duración en minutos
+        """
+        self.multiplicador_activo = multiplier
+        self.fin_boost = datetime.now() + timedelta(minutes=minutes)
+        self.save()
     
     def get_boost_time_remaining(self):
         """Obtiene el tiempo restante del boost en segundos"""

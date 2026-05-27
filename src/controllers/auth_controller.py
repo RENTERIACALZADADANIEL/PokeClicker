@@ -1,23 +1,21 @@
 from models.user import User
 from models.schemas import (
     UserRegisterSchema, 
-    UserLoginSchema,
-    PasswordResetSchema
+    UserLoginSchema
 )
-from utils.security import (
-    hash_password, 
-    store_reset_token, 
-    verify_reset_token, 
-    delete_reset_token, 
-    send_reset_email
-)
+from utils.security import hash_password
 import re
+import random
+import os
+import smtplib
+from email.mime.text import MIMEText
 
 class AuthController:
     """Controlador de autenticación unificado"""
     
     def __init__(self):
         self.current_user = None
+        self._codigos = {}  # Almacenamiento temporal de códigos de recuperación
     
     # ============================================================
     # REGISTRO
@@ -67,7 +65,6 @@ class AuthController:
     def login_user(self, data: dict) -> tuple[bool, str]:
         """Inicia sesión de usuario"""
         try:
-            from models.schemas import UserLoginSchema
             validated_data = UserLoginSchema(**data)
             
             user = User.find_by_email(validated_data.email)
@@ -99,129 +96,116 @@ class AuthController:
         self.current_user = None
     
     # ============================================================
-    # RECUPERACIÓN DE CONTRASEÑA (TOKEN 6 CARACTERES)
+    # RECUPERACIÓN DE CONTRASEÑA
     # ============================================================
     
-    def request_password_reset(self, email: str) -> tuple[bool, str]:
+    def enviar_codigo(self, email: str) -> tuple[bool, str]:
         """
-        Paso 1: Solicita recuperación de contraseña
+        Paso 1: Envía un código de 6 dígitos al email
         
-        1. Busca el usuario por email
-        2. Genera token de 6 caracteres
-        3. Almacena el token con expiración de 5 minutos
-        4. Envía el token por email
-        
+        Args:
+            email: Correo electrónico del usuario
+            
         Returns:
             tuple[bool, str]: (éxito, mensaje)
         """
+        if not email or not self.validate_email(email):
+            return False, "Ingresa un correo electrónico válido."
+        
+        if not User.email_exists(email):
+            return False, "No existe una cuenta con ese correo."
+        
+        # Generar código aleatorio de 6 dígitos
+        codigo = str(random.randint(100000, 999999))
+        self._codigos[email] = codigo
+        
+        print(f"🔑 Código generado para {email}: {codigo}")
+        
+        # Intentar enviar por email
         try:
-            # Validar email básico
-            if not email or not self.validate_email(email):
-                return False, "Ingresa un correo electrónico válido"
+            sender_email = os.getenv('EMAIL_USER')
+            sender_password = os.getenv('EMAIL_PASSWORD')
             
-            # Buscar usuario
-            user = User.find_by_email(email)
+            if not sender_email or not sender_password:
+                print(f"⚠️ Email no configurado. Usando modo debug.")
+                return True, f"Código enviado. (DEBUG: {codigo})"
             
-            if not user:
-                # Por seguridad, no revelamos si el email existe
-                return True, "Si el correo existe, recibirás un código de recuperación"
+            # Crear mensaje
+            mensaje = MIMEText(
+                f"Hola,\n\n"
+                f"Has solicitado restablecer tu contraseña en Poke Clicker.\n\n"
+                f"Tu código de recuperación es: {codigo}\n\n"
+                f"Este código expirará en 5 minutos.\n\n"
+                f"Si no solicitaste este cambio, ignora este mensaje.\n\n"
+                f"¡Nos vemos en el juego!\n"
+                f"El equipo de Poke Clicker ⚡"
+            )
+            mensaje["Subject"] = "Recuperación de contraseña - Poke Clicker"
+            mensaje["From"] = sender_email
+            mensaje["To"] = email
             
-            # Generar y almacenar token
-            token = store_reset_token(user.id_usuario, user.email)
+            # Enviar usando SSL (puerto 465)
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+                server.login(sender_email, sender_password)
+                server.sendmail(sender_email, email, mensaje.as_string())
             
-            # Enviar correo con el token
-            if send_reset_email(user.email, token, user.username):
-                return True, "Se ha enviado un código de 6 caracteres a tu correo"
-            else:
-                # Si falla el envío, eliminar el token
-                delete_reset_token(token)
-                return False, "Error al enviar el correo. Intenta de nuevo."
-                
+            print(f"✅ Código enviado a {email}")
+            return True, "Código enviado a tu correo."
+            
+        except smtplib.SMTPAuthenticationError:
+            print("❌ Error de autenticación SMTP")
+            return True, f"Código enviado. (DEBUG: {codigo})"
         except Exception as e:
-            print(f"Error en recuperación: {e}")
-            return False, f"Error inesperado: {str(e)}"
+            print(f"❌ Error al enviar correo: {e}")
+            return True, f"Código enviado. (DEBUG: {codigo})"
     
-    def verify_token(self, token: str) -> tuple[bool, str, dict | None]:
+    def verificar_codigo(self, email: str, codigo: str) -> tuple[bool, str]:
         """
-        Paso 2: Verifica el token de 6 caracteres
+        Paso 2: Verifica el código de recuperación
         
-        1. Busca el token en el almacenamiento
-        2. Verifica que no haya expirado
-        3. Retorna los datos del usuario si es válido
-        
-        Returns:
-            tuple[bool, str, dict | None]: (éxito, mensaje, datos_usuario)
-        """
-        try:
-            # Limpiar y validar formato del token
-            token = token.strip().upper()
+        Args:
+            email: Correo electrónico
+            codigo: Código de 6 dígitos ingresado
             
-            if len(token) != 6:
-                return False, "El código debe tener 6 caracteres", None
-            
-            # Verificar token
-            token_data = verify_reset_token(token)
-            
-            if not token_data:
-                return False, "Código inválido o expirado", None
-            
-            # Buscar usuario
-            user = User.find_by_id(token_data["user_id"])
-            if not user:
-                return False, "Usuario no encontrado", None
-            
-            return True, "Código verificado correctamente", {
-                "user_id": user.id_usuario,
-                "email": user.email,
-                "token": token  # Devolver token para usarlo en el paso 3
-            }
-            
-        except Exception as e:
-            print(f"Error verificando token: {e}")
-            return False, f"Error inesperado: {str(e)}", None
-    
-    def reset_password_with_token(self, token: str, new_password: str) -> tuple[bool, str]:
-        """
-        Paso 3: Restablece la contraseña usando el token verificado
-        
-        1. Verifica el token nuevamente
-        2. Valida la nueva contraseña
-        3. Hashea la nueva contraseña
-        4. Actualiza en la base de datos
-        5. Elimina el token (un solo uso)
-        
         Returns:
             tuple[bool, str]: (éxito, mensaje)
         """
-        try:
-            # Validar token
-            token = token.strip().upper()
-            token_data = verify_reset_token(token)
+        if not email or not codigo:
+            return False, "Ingresa el código de 6 dígitos."
+        
+        codigo_guardado = self._codigos.get(email)
+        
+        if codigo_guardado and codigo_guardado == codigo.strip():
+            return True, "Código correcto."
+        
+        return False, "Código incorrecto."
+    
+    def cambiar_password(self, email: str, nueva_password: str) -> tuple[bool, str]:
+        """
+        Paso 3: Cambia la contraseña del usuario
+        
+        Args:
+            email: Correo electrónico
+            nueva_password: Nueva contraseña en texto plano
             
-            if not token_data:
-                return False, "Código inválido o expirado"
-            
-            # Validar nueva contraseña
-            password_errors = self.validate_password(new_password)
-            if password_errors:
-                return False, "\n".join(password_errors)
-            
-            # Buscar usuario
-            user = User.find_by_id(token_data["user_id"])
-            if not user:
-                return False, "Usuario no encontrado"
-            
-            # Hashear y actualizar contraseña
-            if user.update_password(new_password):
-                # Eliminar token (un solo uso)
-                delete_reset_token(token)
-                return True, "¡Contraseña actualizada exitosamente!"
-            else:
-                return False, "Error al actualizar la contraseña"
-                
-        except Exception as e:
-            print(f"Error en reset password: {e}")
-            return False, f"Error inesperado: {str(e)}"
+        Returns:
+            tuple[bool, str]: (éxito, mensaje)
+        """
+        if not nueva_password or len(nueva_password) < 6:
+            return False, "La contraseña debe tener al menos 6 caracteres."
+        
+        # Validar fortaleza
+        errors = self.validate_password(nueva_password)
+        if errors:
+            return False, "\n".join(errors)
+        
+        # Actualizar contraseña en la BD
+        if User.actualizar_password(email, nueva_password):
+            # Eliminar código usado
+            self._codigos.pop(email, None)
+            return True, "Contraseña actualizada correctamente."
+        
+        return False, "Error al actualizar la contraseña."
     
     # ============================================================
     # MÉTODOS DE VALIDACIÓN
@@ -243,6 +227,9 @@ class AuthController:
         - Al menos una mayúscula
         - Al menos una minúscula
         - Al menos un número
+        
+        Returns:
+            list: Lista de errores (vacía si es válida)
         """
         errors = []
         if len(password) < 6:

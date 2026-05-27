@@ -8,6 +8,7 @@ class RegisterView:
         self.on_login_click = on_login_click
         self.auth_controller = AuthController()
         
+        # Campos de entrada
         self.username_input = ft.TextField(
             label="Nombre de usuario",
             hint_text="Elige un nombre de usuario",
@@ -49,25 +50,34 @@ class RegisterView:
         self.password_strength = ft.Text("", size=12)
         
     def build(self):
+        """Construye la vista de registro"""
         return ft.Container(
             content=ft.Column(
                 [
+                    ft.Icon(ft.Icons.PERSON_ADD, size=60, color=ft.Colors.BLUE_700),
                     ft.Text("Crear Cuenta", size=30, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_700),
                     ft.Divider(height=30, color=ft.Colors.TRANSPARENT),
                     self.username_input,
-                    ft.Row([self.email_input, self.email_valid], alignment=ft.MainAxisAlignment.CENTER),
+                    ft.Row(
+                        [self.email_input, self.email_valid],
+                        alignment=ft.MainAxisAlignment.CENTER
+                    ),
                     self.password_input,
                     self.password_strength,
                     self.confirm_password_input,
-                    ft.Row([self.message_text, self.success_text], alignment=ft.MainAxisAlignment.CENTER),
-                    ft.ElevatedButton(
+                    ft.Row(
+                        [self.message_text, self.success_text],
+                        alignment=ft.MainAxisAlignment.CENTER
+                    ),
+                    ft.FilledButton(
                         "Registrarse",
                         on_click=self.register_click,
                         width=300,
                         style=ft.ButtonStyle(
                             bgcolor=ft.Colors.BLUE_700,
                             color=ft.Colors.WHITE,
-                            padding=15
+                            padding=15,
+                            shape=ft.RoundedRectangleBorder(radius=8)
                         )
                     ),
                     ft.TextButton(
@@ -86,9 +96,11 @@ class RegisterView:
         )
     
     def register_click(self, e):
+        """Maneja el clic en el botón de registrarse"""
         self.message_text.value = ""
         self.success_text.value = ""
         
+        # Validar campos vacíos
         if not all([
             self.username_input.value,
             self.email_input.value,
@@ -99,12 +111,27 @@ class RegisterView:
             self.page.update()
             return
         
+        # Validar contraseñas coincidan
+        if self.password_input.value != self.confirm_password_input.value:
+            self.message_text.value = "Las contraseñas no coinciden"
+            self.page.update()
+            return
+        
+        # Validar fortaleza de contraseña
         password_errors = self.auth_controller.validate_password(self.password_input.value)
         if password_errors:
             self.message_text.value = "\n".join(password_errors)
             self.page.update()
             return
         
+        # Validar username
+        valid, msg = self.auth_controller.validate_username(self.username_input.value)
+        if not valid:
+            self.message_text.value = msg
+            self.page.update()
+            return
+        
+        # Intentar registro
         data = {
             "username": self.username_input.value,
             "email": self.email_input.value,
@@ -125,16 +152,15 @@ class RegisterView:
             self.password_input.value = ""
             self.confirm_password_input.value = ""
             self.password_strength.value = ""
-            self.email_valid.name = ft.Icons.CIRCLE_OUTLINED
-            self.email_valid.color = ft.Colors.GREY_400
             
-            # Navegar directamente al login
+            # Redirigir al login
             self.on_register_success(saved_email)
         else:
             self.message_text.value = message
             self.page.update()
     
     def validate_email_format(self, e):
+        """Valida el formato del email en tiempo real"""
         if self.email_input.value:
             if self.auth_controller.validate_email(self.email_input.value):
                 self.email_valid.name = ft.Icons.CHECK_CIRCLE_OUTLINE
@@ -149,19 +175,20 @@ class RegisterView:
         self.page.update()
     
     def check_password_strength(self, e):
+        """Muestra la fortaleza de la contraseña en tiempo real"""
         errors = self.auth_controller.validate_password(self.password_input.value)
         
         if not self.password_input.value:
             self.password_strength.value = ""
             self.password_strength.color = ft.Colors.GREY
         elif len(errors) == 0:
-            self.password_strength.value = "Contraseña fuerte"
+            self.password_strength.value = "✅ Contraseña fuerte"
             self.password_strength.color = ft.Colors.GREEN
         elif len(errors) <= 2:
-            self.password_strength.value = "Contraseña media"
+            self.password_strength.value = "⚠️ Contraseña media"
             self.password_strength.color = ft.Colors.ORANGE
         else:
-            self.password_strength.value = "Contraseña débil"
+            self.password_strength.value = "❌ Contraseña débil"
             self.password_strength.color = ft.Colors.RED
         
         self.page.update()

@@ -8,9 +8,9 @@ class Inventory:
                  item_id=None, nombre=None, cantidad=1, fecha_obtencion=None):
         self.id_item_inv = id_item_inv
         self.id_usuario = id_usuario
-        self.tipo = tipo              # 'pokemon' o 'boost'
-        self.item_id = item_id        # ID del pokémon (API) o 'boost_x2'
-        self.nombre = nombre          # Nombre del item
+        self.tipo = tipo
+        self.item_id = item_id
+        self.nombre = nombre
         self.cantidad = cantidad
         self.fecha_obtencion = fecha_obtencion or datetime.now()
     
@@ -18,9 +18,12 @@ class Inventory:
         """Guarda un item en el inventario"""
         cursor = db.get_cursor()
         if not cursor:
+            print("❌ No se pudo obtener cursor de BD")
             return False
         
         try:
+            print(f"💾 Guardando en BD: user={self.id_usuario}, tipo={self.tipo}, item={self.item_id}, nombre={self.nombre}")
+            
             # Verificar si ya existe el item
             query_check = """
                 SELECT id_item_inv, cantidad FROM inventario 
@@ -30,14 +33,14 @@ class Inventory:
             existing = cursor.fetchone()
             
             if existing:
-                # Actualizar cantidad
+                print(f"   Item ya existe (ID: {existing['id_item_inv']}), actualizando cantidad +{self.cantidad}")
                 query = """
                     UPDATE inventario SET cantidad = cantidad + %s 
                     WHERE id_item_inv = %s
                 """
                 cursor.execute(query, (self.cantidad, existing['id_item_inv']))
             else:
-                # Insertar nuevo
+                print(f"   Item nuevo, insertando...")
                 query = """
                     INSERT INTO inventario (id_usuario, tipo, item_id, nombre, cantidad)
                     VALUES (%s, %s, %s, %s, %s)
@@ -49,9 +52,10 @@ class Inventory:
                 self.id_item_inv = cursor.lastrowid
             
             db.commit()
+            print(f"✅ Item guardado exitosamente")
             return True
         except Exception as e:
-            print(f"Error saving inventory: {e}")
+            print(f"❌ Error guardando en inventario: {e}")
             db.rollback()
             return False
         finally:
@@ -62,6 +66,7 @@ class Inventory:
         """Obtiene todos los items del inventario de un usuario"""
         cursor = db.get_cursor()
         if not cursor:
+            print("❌ No se pudo obtener cursor para leer inventario")
             return []
         
         try:
@@ -72,9 +77,12 @@ class Inventory:
             """
             cursor.execute(query, (user_id,))
             results = cursor.fetchall()
+            print(f"📦 Inventario user {user_id}: {len(results)} items encontrados")
+            for r in results:
+                print(f"   - {r['nombre']} x{r['cantidad']} ({r['tipo']})")
             return [Inventory(**item) for item in results]
         except Exception as e:
-            print(f"Error getting inventory: {e}")
+            print(f"❌ Error obteniendo inventario: {e}")
             return []
         finally:
             cursor.close()
@@ -93,19 +101,19 @@ class Inventory:
             """
             cursor.execute(query, (user_id, tipo))
             result = cursor.fetchone()
-            return result['total'] if result and result['total'] else 0
+            total = result['total'] if result and result['total'] else 0
+            print(f"📊 Count {tipo} para user {user_id}: {total}")
+            return total
         except Exception as e:
-            print(f"Error counting inventory: {e}")
+            print(f"❌ Error contando inventario: {e}")
             return 0
         finally:
             cursor.close()
     
     @staticmethod
     def get_boosts_count(user_id):
-        """Obtiene la cantidad de boosts en el inventario"""
         return Inventory.count_by_type(user_id, 'boost')
     
     @staticmethod
     def get_pokemon_count(user_id):
-        """Obtiene la cantidad de pokémon en el inventario"""
         return Inventory.count_by_type(user_id, 'pokemon')

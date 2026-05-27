@@ -44,7 +44,7 @@ class User:
             cursor.close()
     
     def update_password(self, new_password):
-        """Actualiza la contraseña del usuario"""
+        """Actualiza la contraseña del usuario (usa bcrypt internamente)"""
         cursor = db.get_cursor()
         if not cursor:
             return False
@@ -76,7 +76,7 @@ class User:
             print(f"Error verifying password: {e}")
             return False
     
-    # ===== MÉTODOS ESTÁTICOS DE BÚSQUEDA =====
+    # ===== MÉTODOS ESTÁTICOS =====
     
     @staticmethod
     def find_by_email(email):
@@ -147,6 +147,45 @@ class User:
     def username_exists(username):
         """Verifica si un username ya está en uso"""
         return User.find_by_username(username) is not None
+    
+    @staticmethod
+    def actualizar_password(email, nueva_password):
+        """
+        Actualiza la contraseña de un usuario por email.
+        Hashea la contraseña antes de guardar.
+        
+        Args:
+            email: Email del usuario
+            nueva_password: Nueva contraseña en texto plano
+            
+        Returns:
+            bool: True si se actualizó correctamente
+        """
+        cursor = db.get_cursor()
+        if not cursor:
+            return False
+        
+        try:
+            hashed = bcrypt.hashpw(
+                nueva_password.encode('utf-8'), 
+                bcrypt.gensalt(rounds=12)
+            )
+            query = "UPDATE usuarios SET password = %s WHERE email = %s"
+            cursor.execute(query, (hashed.decode('utf-8'), email))
+            db.commit()
+            
+            if cursor.rowcount > 0:
+                print(f"✅ Contraseña actualizada para {email}")
+                return True
+            else:
+                print(f"❌ No se encontró usuario con email {email}")
+                return False
+        except Exception as e:
+            print(f"Error actualizando password: {e}")
+            db.rollback()
+            return False
+        finally:
+            cursor.close()
     
     @staticmethod
     def get_total_users():

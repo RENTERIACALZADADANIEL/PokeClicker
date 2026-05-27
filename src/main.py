@@ -64,35 +64,23 @@ class PokeClickerApp:
     # ============================================================
     
     def mostrar_dialogo(self, dialog):
-        """Muestra un diálogo eliminando cualquier diálogo previo"""
         for control in self.page.overlay[:]:
             if isinstance(control, ft.AlertDialog):
                 self.page.overlay.remove(control)
-        
         self.page.overlay.append(dialog)
         dialog.open = True
         self.page.update()
     
     def cerrar_dialogo(self):
-        """Cierra y elimina todos los diálogos"""
         for control in self.page.overlay[:]:
             if isinstance(control, ft.AlertDialog):
                 self.page.overlay.remove(control)
         self.page.update()
     
     def mostrar_error(self, message):
-        """Muestra un diálogo de error"""
+        print(f"❌ Error: {message}")
         dialog = ft.AlertDialog(
             title=ft.Text("❌ Error"),
-            content=ft.Text(message),
-            actions=[ft.TextButton("OK", on_click=lambda e: self.cerrar_dialogo())]
-        )
-        self.mostrar_dialogo(dialog)
-    
-    def mostrar_exito(self, message):
-        """Muestra un diálogo de éxito"""
-        dialog = ft.AlertDialog(
-            title=ft.Text("✅ Éxito"),
             content=ft.Text(message),
             actions=[ft.TextButton("OK", on_click=lambda e: self.cerrar_dialogo())]
         )
@@ -104,6 +92,7 @@ class PokeClickerApp:
     
     def show_login(self, prefill_email=None):
         """Muestra la pantalla de inicio de sesión"""
+        print("📱 Mostrando login...")
         self.clear_session()
         self.current_user = None
         self.game_progress = None
@@ -126,12 +115,12 @@ class PokeClickerApp:
     
     def show_register(self):
         """Muestra la pantalla de registro"""
+        print("📝 Mostrando registro...")
         register_view = RegisterView(
             page=self.page,
             on_register_success=lambda email: self.on_register_success(email),
             on_login_click=lambda e: self.show_login()
         )
-        
         register_view.email_input.on_change = register_view.validate_email_format
         register_view.password_input.on_change = register_view.check_password_strength
         
@@ -166,24 +155,14 @@ class PokeClickerApp:
     def do_click(self):
         if not self.game_progress:
             return
-        
         clicks_ganados = self.game_progress.click()
         self.game_progress.save()
-        
         print(f"⚡ Click! +{clicks_ganados} (Actuales: {self.game_progress.clicks_actuales})")
         self.update_dashboard_view()
     
     def do_rebirth(self):
-        """
-        Realiza un rebirth SIN diálogo.
-        1. Verifica que tenga suficientes clicks
-        2. Gasta clicks, reinicia contador
-        3. Activa boost x1.25 por 5 minutos
-        4. Aumenta costo del siguiente rebirth
-        """
         if not self.game_progress:
             return
-        
         if not self.game_progress.can_rebirth():
             return
         
@@ -191,12 +170,9 @@ class PokeClickerApp:
         costo = self.game_progress.costo_siguiente_rebirth
         
         if self.game_progress.do_rebirth():
-            # Solo mostrar en consola
             print(f"🔄 Rebirth #{rebirth_num}! Boost x1.25 por 5 minutos")
             print(f"   Costo: {costo:,} clicks")
-            print(f"   Próximo rebirth: {self.game_progress.costo_siguiente_rebirth:,} clicks")
-            
-            # Actualizar vista e iniciar timer del boost
+            print(f"   Próximo: {self.game_progress.costo_siguiente_rebirth:,} clicks")
             self.update_dashboard_view()
             self.start_boost_timer()
     
@@ -208,7 +184,6 @@ class PokeClickerApp:
                     self.update_dashboard_view()
                 except Exception:
                     break
-            
             try:
                 self.update_dashboard_view()
             except Exception:
@@ -220,10 +195,8 @@ class PokeClickerApp:
     def update_dashboard_view(self):
         if not self.game_progress or not hasattr(self, 'contenido_pagina'):
             return
-        
         try:
             stats = self.game_progress.get_stats()
-            
             self.contenido_pagina.content = principal_tab(
                 clicks_actuales=stats["clicks_actuales"],
                 clicks_totales=stats["clicks_totales"],
@@ -233,101 +206,73 @@ class PokeClickerApp:
                 puede_rebirth=stats["puede_rebirth"],
                 boost_activo=stats["boost_activo"],
                 boost_tiempo_restante=stats["boost_tiempo_restante"],
+                boost_info=stats.get("boost_info", {}),
                 on_click=self.do_click,
                 on_rebirth=self.do_rebirth
             )
-            
             self.page.update()
         except Exception as e:
             print(f"Error actualizando dashboard: {e}")
     
     # ============================================================
-    # COMPRAS EN TIENDA
+    # TIENDA E INVENTARIO
     # ============================================================
     
     def buy_pokemon(self):
         """Compra un pokémon aleatorio"""
+        print("🛒 buy_pokemon() llamado")
         if not self.shop_controller:
+            print("❌ shop_controller es None")
             return
         
         success, message, pokemon_data = self.shop_controller.buy_random_pokemon()
         
         if success and pokemon_data:
-            dialog = ft.AlertDialog(
-                title=ft.Text("🎉 ¡Nuevo Pokémon!"),
-                content=ft.Column(
-                    [
-                        ft.Image(
-                            src=pokemon_data['sprite'],
-                            width=150,
-                            height=150,
-                            fit=ft.ImageFit.CONTAIN
-                        ),
-                        ft.Text(
-                            f"¡Has obtenido a {pokemon_data['name']}!",
-                            size=18,
-                            weight=ft.FontWeight.BOLD
-                        ),
-                        ft.Text(
-                            f"Tipos: {', '.join(pokemon_data['types'])}",
-                            size=14,
-                            color=ft.Colors.GREY_600
-                        ),
-                    ],
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                    spacing=10
-                ),
-                actions=[
-                    ft.TextButton(
-                        "¡Genial!",
-                        on_click=lambda e: self._close_and_refresh_tienda()
-                    )
-                ],
-                actions_alignment=ft.MainAxisAlignment.CENTER
-            )
-            self.mostrar_dialogo(dialog)
+            print(f"🎉 Pokémon comprado: {pokemon_data['name']}")
+            self.cargar_tienda()
         else:
             self.mostrar_error(message)
     
     def buy_boost(self):
         """Compra un boost x2"""
+        print("🛒 buy_boost() llamado")
         if not self.shop_controller:
+            print("❌ shop_controller es None")
             return
         
         success, message = self.shop_controller.buy_boost()
         
         if success:
-            self.mostrar_exito(message)
-            self.update_dashboard_view()
+            print(f"⚡ Boost comprado")
+            self.cargar_tienda()
         else:
             self.mostrar_error(message)
     
     def use_boost_from_inventory(self):
         """Usa un boost del inventario"""
+        print("🎒 use_boost_from_inventory() llamado")
         if not self.shop_controller:
+            print("❌ shop_controller es None")
             return
         
         success, message = self.shop_controller.use_boost()
         
         if success:
-            self.mostrar_exito(message)
+            print(f"⚡ Boost activado desde inventario")
             self.update_dashboard_view()
             self.start_boost_timer()
+            self.cargar_inventario()
         else:
             self.mostrar_error(message)
-    
-    def _close_and_refresh_tienda(self):
-        """Cierra diálogo y refresca la vista de tienda"""
-        self.cerrar_dialogo()
-        self.update_dashboard_view()
-        self.cargar_tienda()
     
     def cargar_tienda(self):
         """Carga la pestaña de tienda"""
         if not self.game_progress:
+            print("❌ No hay game_progress para cargar tienda")
             return
         
         rebirths = self.game_progress.cantidad_rebirths
+        print(f"🏪 Cargando tienda con {rebirths} rebirths")
         
         self.contenido_pagina.content = tienda_tab(
             rebirths=rebirths,
@@ -341,8 +286,10 @@ class PokeClickerApp:
     def cargar_inventario(self):
         """Carga la pestaña de inventario"""
         if not self.current_user:
+            print("❌ No hay current_user para cargar inventario")
             return
         
+        print(f"🎒 Cargando inventario para user {self.current_user.id_usuario}")
         inventory = self.shop_controller.get_inventory(self.current_user.id_usuario) if self.shop_controller else []
         
         self.contenido_pagina.content = inventario_tab(
@@ -368,7 +315,8 @@ class PokeClickerApp:
             "multiplicador_activo": 1.0,
             "puede_rebirth": False,
             "boost_activo": False,
-            "boost_tiempo_restante": 0
+            "boost_tiempo_restante": 0,
+            "boost_info": {}
         }
         
         # ============================================================
@@ -396,6 +344,7 @@ class PokeClickerApp:
                 puede_rebirth=stats["puede_rebirth"],
                 boost_activo=stats["boost_activo"],
                 boost_tiempo_restante=stats["boost_tiempo_restante"],
+                boost_info=stats.get("boost_info", {}),
                 on_click=self.do_click,
                 on_rebirth=self.do_rebirth
             ),
@@ -407,6 +356,7 @@ class PokeClickerApp:
         # ============================================================
         def cambiar_tab(e):
             opcion = e.control.selected_index
+            print(f"🔄 Cambiando a pestaña {opcion}")
             
             if opcion == 0:
                 if self.game_progress:
@@ -420,6 +370,7 @@ class PokeClickerApp:
                         puede_rebirth=s["puede_rebirth"],
                         boost_activo=s["boost_activo"],
                         boost_tiempo_restante=s["boost_tiempo_restante"],
+                        boost_info=s.get("boost_info", {}),
                         on_click=self.do_click,
                         on_rebirth=self.do_rebirth
                     )

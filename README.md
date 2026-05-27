@@ -50,7 +50,7 @@ El diseño lógico de la base de datos está optimizado para gestionar de manera
 *El diagrama anterior detalla las relaciones entre las entidades de Usuario, Progreso, Tienda, Inventario y Pokémon obtenidos.*
 
 ---
-<<<<<<< HEAD
+<<<<<<< Reporte De Trabajo 
 =======
 Poke-Clicker es una aplicación móvil multiplataforma que fusiona las mecánicas de los videojuegos de tipo Idle Clicker (juegos incrementales) con el universo estratégico de Pokémon. El software implementa una arquitectura modular con una interfaz gráfica reactiva desarrollada en Flet (v0.82.x) y persistencia de datos relacional en MySQL, garantizando un sistema completamente validado, funcional y libre de errores.
 

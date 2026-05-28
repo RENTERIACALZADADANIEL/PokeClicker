@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 14-05-2026 a las 00:52:43
+-- Tiempo de generación: 28-05-2026 a las 02:03:56
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -24,15 +24,25 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
--- Estructura de tabla para la tabla `inventario_items`
+-- Estructura de tabla para la tabla `inventario`
 --
 
-CREATE TABLE `inventario_items` (
+CREATE TABLE `inventario` (
   `id_item_inv` int(11) NOT NULL,
   `id_usuario` int(11) NOT NULL,
-  `id_producto` int(11) NOT NULL,
-  `cantidad` int(11) DEFAULT 1
+  `tipo` enum('pokemon','boost') NOT NULL,
+  `item_id` varchar(50) NOT NULL,
+  `nombre` varchar(100) NOT NULL,
+  `cantidad` int(11) DEFAULT 1,
+  `fecha_obtencion` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `inventario`
+--
+
+INSERT INTO `inventario` (`id_item_inv`, `id_usuario`, `tipo`, `item_id`, `nombre`, `cantidad`, `fecha_obtencion`) VALUES
+(1, 1, 'boost', 'boost_x2', 'Boost x2 (5 min)', 1, '2026-05-27 22:58:22');
 
 -- --------------------------------------------------------
 
@@ -63,8 +73,18 @@ CREATE TABLE `progreso_juego` (
   `cantidad_rebirths` int(11) DEFAULT 0,
   `costo_siguiente_rebirth` bigint(20) DEFAULT 100,
   `multiplicador_activo` float DEFAULT 1,
-  `fin_boost` datetime DEFAULT NULL
+  `fin_boost` datetime DEFAULT NULL,
+  `boost_tienda_fin` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `progreso_juego`
+--
+
+INSERT INTO `progreso_juego` (`id_progreso`, `id_usuario`, `clicks_actuales`, `clicks_totales`, `cantidad_rebirths`, `costo_siguiente_rebirth`, `multiplicador_activo`, `fin_boost`, `boost_tienda_fin`) VALUES
+(1, 1, 18, 493, 0, 337, 1.25, '2026-05-27 17:28:48', NULL),
+(2, 2, 0, 475, 3, 337, 1.25, '2026-05-27 17:41:35', NULL),
+(3, 4, 0, 0, 0, 100, 1, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -96,16 +116,25 @@ CREATE TABLE `usuarios` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
+-- Volcado de datos para la tabla `usuarios`
+--
+
+INSERT INTO `usuarios` (`id_usuario`, `username`, `email`, `password`, `fecha_registro`) VALUES
+(1, 'sali', 'sali@gmail.com', '$2b$12$OHITACOZlYY.xnNwCUYfNORK/lM1wD7orMPJ7se0.7vhg3imosg.y', '2026-05-27 22:14:21'),
+(2, 'feliz', 'feliz@gmail.com', '$2b$12$M2/p7e1Q10GIhuQ6XQljc.a1ZY30wOd3bPQv1yvV7leZvsr3TIF5i', '2026-05-27 23:26:13'),
+(3, 'danis', '23308060610259@cetis61.edu.mx', '$2b$12$af/gh3XnGcsWoIEt/IofpOEh7zEw3fwknNg7MlYD91YxFHZwjImze', '2026-05-27 23:52:33'),
+(4, 'danieles', 'danielisraelrenteria.c@gmail.com', '$2b$12$kdw5Qiax11Gq7TSzKYnZwuAytX8p/BScRKngbNImFvNFfKMNk.BS.', '2026-05-27 23:53:44');
+
+--
 -- Índices para tablas volcadas
 --
 
 --
--- Indices de la tabla `inventario_items`
+-- Indices de la tabla `inventario`
 --
-ALTER TABLE `inventario_items`
+ALTER TABLE `inventario`
   ADD PRIMARY KEY (`id_item_inv`),
-  ADD KEY `id_usuario` (`id_usuario`),
-  ADD KEY `id_producto` (`id_producto`);
+  ADD KEY `id_usuario` (`id_usuario`);
 
 --
 -- Indices de la tabla `pokemones_obtenidos`
@@ -132,17 +161,18 @@ ALTER TABLE `tienda`
 --
 ALTER TABLE `usuarios`
   ADD PRIMARY KEY (`id_usuario`),
-  ADD UNIQUE KEY `email` (`email`);
+  ADD UNIQUE KEY `email` (`email`),
+  ADD UNIQUE KEY `username` (`username`);
 
 --
 -- AUTO_INCREMENT de las tablas volcadas
 --
 
 --
--- AUTO_INCREMENT de la tabla `inventario_items`
+-- AUTO_INCREMENT de la tabla `inventario`
 --
-ALTER TABLE `inventario_items`
-  MODIFY `id_item_inv` int(11) NOT NULL AUTO_INCREMENT;
+ALTER TABLE `inventario`
+  MODIFY `id_item_inv` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT de la tabla `pokemones_obtenidos`
@@ -154,7 +184,7 @@ ALTER TABLE `pokemones_obtenidos`
 -- AUTO_INCREMENT de la tabla `progreso_juego`
 --
 ALTER TABLE `progreso_juego`
-  MODIFY `id_progreso` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_progreso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT de la tabla `tienda`
@@ -166,18 +196,17 @@ ALTER TABLE `tienda`
 -- AUTO_INCREMENT de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id_usuario` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_usuario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- Restricciones para tablas volcadas
 --
 
 --
--- Filtros para la tabla `inventario_items`
+-- Filtros para la tabla `inventario`
 --
-ALTER TABLE `inventario_items`
-  ADD CONSTRAINT `inventario_items_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id_usuario`) ON DELETE CASCADE,
-  ADD CONSTRAINT `inventario_items_ibfk_2` FOREIGN KEY (`id_producto`) REFERENCES `tienda` (`id_producto`) ON DELETE CASCADE;
+ALTER TABLE `inventario`
+  ADD CONSTRAINT `inventario_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id_usuario`) ON DELETE CASCADE;
 
 --
 -- Filtros para la tabla `pokemones_obtenidos`

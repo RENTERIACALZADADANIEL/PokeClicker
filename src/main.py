@@ -455,6 +455,11 @@ class PokeClickerApp:
         print(f"🎮 Dashboard cargado para: {username}")
 
 
-if __name__ == "__main__":
+def main():
+    
     app = PokeClickerApp()
     ft.app(target=app.main)
+
+
+if __name__ == "__main__":
+    main()

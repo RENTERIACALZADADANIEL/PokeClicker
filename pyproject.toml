@@ -16,7 +16,10 @@ dependencies = [
 ]
 
 [project.scripts]
-app = "src.main:main"
+app = "main:main"
 
 [tool.uv]
-dev-dependencies = []
+package = true
+
+[tool.setuptools.package-dir]
+"" = "src"

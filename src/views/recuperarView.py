@@ -107,6 +107,11 @@ class RecuperarView:
                         padding=15
                     )
                 ),
+                ft.TextButton(
+                    "¿No recibiste el código? Reenviar",
+                    on_click=lambda e: self.reenviar(e),
+                    style=ft.ButtonStyle(color=ft.Colors.BLUE_300)
+                ),
             ]
         )
         
@@ -164,6 +169,16 @@ class RecuperarView:
         else:
             self.set_msg(texto)
     
+    def reenviar(self, e):
+        """Reenvía el código al mismo email"""
+        self.set_msg("Reenviando código...", ft.Colors.BLUE_300)
+        ok, texto = self.auth_controller.enviar_codigo(self.email_guardado)
+        if ok:
+            self.codigo_input.value = ""
+            self.set_msg(f"Nuevo código enviado a {self.email_guardado}", ft.Colors.GREEN_400)
+        else:
+            self.set_msg(texto)
+
     def verificar(self, e):
         """Paso 2: Verificar código"""
         self.set_msg("")

@@ -1,4 +1,4 @@
-from config.database import db
+from models.databaseModel import db
 from datetime import datetime
 import bcrypt
 

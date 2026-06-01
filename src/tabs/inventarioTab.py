@@ -114,5 +114,4 @@ def inventario_tab(inventory_items=None, on_use_boost=None):
             scroll=ft.ScrollMode.AUTO
         ),
         padding=15,
-        expand=True
-    )
+        expand=True)

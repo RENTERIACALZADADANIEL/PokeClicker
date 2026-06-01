@@ -3,7 +3,7 @@ import flet as ft
 def principal_tab(clicks_actuales=0, clicks_totales=0, cantidad_rebirths=0, 
                   costo_rebirth=100, multiplicador=1.0, puede_rebirth=False,
                   boost_activo=False, boost_tiempo_restante=0, boost_info=None,
-                  on_click=None, on_rebirth=None):
+                  pokemon_sprite=None, on_click=None, on_rebirth=None):
     """
     Pestaña principal del juego
     
@@ -183,7 +183,7 @@ def principal_tab(clicks_actuales=0, clicks_totales=0, cantidad_rebirths=0,
                 
                 # Pokémon
                 ft.Image(
-                    src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png",
+                    src=pokemon_sprite,
                     width=120,
                     height=120
                 ),

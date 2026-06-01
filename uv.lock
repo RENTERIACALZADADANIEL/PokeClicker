@@ -258,7 +258,7 @@ wheels = [
 [[package]]
 name = "mi-proyecto-flet"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "bcrypt" },
     { name = "flet" },
@@ -282,9 +282,6 @@ requires-dist = [
     { name = "ramdom", specifier = ">=1.0" },
     { name = "requests", specifier = ">=2.34.2" },
 ]
-
-[package.metadata.requires-dev]
-dev = []
 
 [[package]]
 name = "msgpack"

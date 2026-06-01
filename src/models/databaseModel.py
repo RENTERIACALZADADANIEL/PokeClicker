@@ -16,7 +16,12 @@ class Database:
     
     def connect(self):
         try:
-            if self.connection is None or not self.connection.is_connected():
+            if self.connection is not None:
+                try:
+                    self.connection.ping(reconnect=True, attempts=3, delay=1)
+                except Exception:
+                    self.connection = None
+            if self.connection is None:
                 self.connection = mysql.connector.connect(
                     host=os.getenv('DB_HOST', '127.0.0.1'),
                     port=int(os.getenv('DB_PORT', 3306)),
@@ -27,17 +32,27 @@ class Database:
             return self.connection
         except Error as e:
             print(f"Error connecting to MySQL: {e}")
-            return None
-    
-    def disconnect(self):
-        if self.connection and self.connection.is_connected():
-            self.connection.close()
             self.connection = None
-    
+            return None
+
+    def disconnect(self):
+        if self.connection:
+            try:
+                self.connection.close()
+            except Exception:
+                pass
+            self.connection = None
+
     def get_cursor(self, dictionary=True):
         connection = self.connect()
         if connection:
-            return connection.cursor(dictionary=dictionary)
+            try:
+                return connection.cursor(dictionary=dictionary)
+            except Exception:
+                self.connection = None
+                connection = self.connect()
+                if connection:
+                    return connection.cursor(dictionary=dictionary)
         return None
     
     def commit(self):

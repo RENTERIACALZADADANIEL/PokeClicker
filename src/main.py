@@ -14,7 +14,7 @@ except Exception as e:
     traceback.print_exc()
 
 def start(page: ft.Page):
-    print("=== start() ejecutándose ===")
+    print(" start() ejecutándose ")
     page.title = "Pokémon Clicker"
     page.window_width = 450
     page.window_height = 700

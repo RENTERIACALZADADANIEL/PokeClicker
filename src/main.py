@@ -97,6 +97,16 @@ def main():
     print("=== main() iniciado ===")
     ft.app(target=start)
 
+<<<<<<< HEAD
 if __name__ == "__main__":
     print("=== Script iniciado ===")
+=======
+def main():
+    
+    app = PokeClickerApp()
+    ft.app(target=app.main)
+
+
+if __name__ == "__main__":
+>>>>>>> cd0784f10894db9adce5840ac050b0c25ab9be07
     main()

@@ -74,7 +74,7 @@ def DashboardView(page, progreso_controller):
                 ft.Text("¡Toca el Pokémon!", size=16, italic=True, color=ft.Colors.RED_600),
                 ft.Container(height=20),
                 ft.ElevatedButton(
-                    "✨ ¡Renacer! ✨",
+                    " Renacer ✨",
                     on_click=on_rebirth,
                     style=ft.ButtonStyle(
                         bgcolor=ft.Colors.RED_700,
@@ -101,8 +101,8 @@ def DashboardView(page, progreso_controller):
                 ft.Divider(height=30, color=ft.Colors.RED_300),
                 ft.Text("Estadísticas de Entrenador:", size=20, weight="bold", color=ft.Colors.RED_700),
                 ft.Text(f"📊 Nivel: {progreso['cantidad_rebirths'] + 1}", size=16),
-                ft.Text(f"🎯 Clicks totales: {progreso['clicks_totales']:,}", size=16),
-                ft.Text(f"⚡ Racha actual: {progreso['clicks_actuales']:,}", size=16),
+                ft.Text(f" Clicks totales: {progreso['clicks_totales']:,}", size=16),
+                ft.Text(f" Racha actual: {progreso['clicks_actuales']:,}", size=16),
                 ft.Divider(height=20),
                 ft.ListTile(
                     leading=ft.Icon(ft.Icons.LOGOUT, color=ft.Colors.RED),

@@ -10,7 +10,7 @@ try:
     from views.RegistroView import RegistroView
     print("✅ Todas las importaciones OK")
 except Exception as e:
-    print(f"❌ Error en importaciones: {e}")
+    print(f" Error en importaciones: {e}")
     traceback.print_exc()
 
 def start(page: ft.Page):
@@ -26,14 +26,14 @@ def start(page: ft.Page):
         pokemon_ctrl = PokemonModel()
         print("✅ Controladores creados")
     except Exception as e:
-        print(f"❌ Error creando controladores: {e}")
+        print(f" Error creando controladores: {e}")
         traceback.print_exc()
         page.add(ft.Text(f"Error: {e}", color=ft.Colors.RED))
         page.update()
         return
 
     def route_change(e):
-        print(f"📱 route_change: {page.route}")
+        print(f" route_change: {page.route}")
         try:
             page.views.clear()
             
@@ -62,14 +62,14 @@ def start(page: ft.Page):
             print("  ➜ page.update() completado")
             
         except Exception as e:
-            print(f"❌ ERROR en route_change: {e}")
+            print(f" ERROR en route_change: {e}")
             traceback.print_exc()
             page.clean()
             page.add(ft.Text(f"Error: {e}", color=ft.Colors.RED))
             page.update()
     
     def view_pop(e):
-        print("🔙 view_pop")
+        print(" view_pop")
         if len(page.views) > 1:
             page.views.pop()
             top_view = page.views[-1]
@@ -86,9 +86,9 @@ def start(page: ft.Page):
         vista_inicial = LoginView(page, auth_ctrl)
         page.views.append(vista_inicial)
         page.update()
-        print("✅ Vista inicial creada manualmente")
+        print(" Vista inicial creada manualmente")
     except Exception as e:
-        print(f"❌ Error creando vista inicial: {e}")
+        print(f" Error creando vista inicial: {e}")
         traceback.print_exc()
         page.add(ft.Text(f"Error: {e}", color=ft.Colors.RED))
         page.update()
@@ -98,5 +98,5 @@ def main():
     ft.app(target=start)
 
 if __name__ == "__main__":
-    print("=== Script iniciado ===")
+    print(" Script iniciado")
     main()

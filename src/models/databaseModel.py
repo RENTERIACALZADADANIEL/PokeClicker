@@ -56,13 +56,13 @@ class Database:
         return None
     
     def commit(self):
-        """Confirma los cambios en la base de datos"""
+        
         if self.connection and self.connection.is_connected():
             self.connection.commit()
     
     def rollback(self):
-        """Revierte los cambios en caso de error"""
+        
         if self.connection and self.connection.is_connected():
             self.connection.rollback()
 
-db = Database()  # ✅ CORREGIDO - Sin coma extra
+db = Database()  

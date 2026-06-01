@@ -3,7 +3,6 @@ from datetime import datetime
 import bcrypt
 
 class User:
-    """Modelo de usuario unificado - Único punto de acceso a la tabla usuarios"""
     
     def __init__(self, id_usuario=None, username=None, email=None, password=None, fecha_registro=None):
         self.id_usuario = id_usuario
@@ -13,7 +12,6 @@ class User:
         self.fecha_registro = fecha_registro or datetime.now()
     
     def to_dict(self):
-        """Convierte el objeto a diccionario (sin contraseña)"""
         return {
             "id_usuario": self.id_usuario,
             "username": self.username,
@@ -22,7 +20,7 @@ class User:
         }
     
     def save(self):
-        """Guarda un nuevo usuario en la base de datos"""
+       
         cursor = db.get_cursor()
         if not cursor:
             return False
@@ -44,7 +42,7 @@ class User:
             cursor.close()
     
     def update_password(self, new_password):
-        """Actualiza la contraseña del usuario (usa bcrypt internamente)"""
+        
         cursor = db.get_cursor()
         if not cursor:
             return False
@@ -66,7 +64,7 @@ class User:
             cursor.close()
     
     def verify_password(self, password):
-        """Verifica si la contraseña coincide con el hash almacenado"""
+       
         try:
             return bcrypt.checkpw(
                 password.encode('utf-8'), 
@@ -76,7 +74,6 @@ class User:
             print(f"Error verifying password: {e}")
             return False
     
-    # ===== MÉTODOS ESTÁTICOS =====
     
     @staticmethod
     def find_by_email(email):
@@ -120,7 +117,7 @@ class User:
     
     @staticmethod
     def find_by_username(username):
-        """Busca un usuario por nombre de usuario"""
+        
         cursor = db.get_cursor()
         if not cursor:
             return None
@@ -140,27 +137,17 @@ class User:
     
     @staticmethod
     def email_exists(email):
-        """Verifica si un email ya está registrado"""
+        
         return User.find_by_email(email) is not None
     
     @staticmethod
     def username_exists(username):
-        """Verifica si un username ya está en uso"""
+        
         return User.find_by_username(username) is not None
     
     @staticmethod
     def actualizar_password(email, nueva_password):
-        """
-        Actualiza la contraseña de un usuario por email.
-        Hashea la contraseña antes de guardar.
-        
-        Args:
-            email: Email del usuario
-            nueva_password: Nueva contraseña en texto plano
-            
-        Returns:
-            bool: True si se actualizó correctamente
-        """
+       
         cursor = db.get_cursor()
         if not cursor:
             return False
@@ -178,7 +165,7 @@ class User:
                 print(f"✅ Contraseña actualizada para {email}")
                 return True
             else:
-                print(f"❌ No se encontró usuario con email {email}")
+                print(f" No se encontró usuario con email {email}")
                 return False
         except Exception as e:
             print(f"Error actualizando password: {e}")
@@ -189,7 +176,7 @@ class User:
     
     @staticmethod
     def get_total_users():
-        """Obtiene el total de usuarios registrados"""
+       
         cursor = db.get_cursor()
         if not cursor:
             return 0

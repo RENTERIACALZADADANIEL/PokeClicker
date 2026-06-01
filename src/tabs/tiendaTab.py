@@ -1,32 +1,30 @@
 import flet as ft
 
 def tienda_tab(rebirths=0, on_buy_pokemon=None, on_buy_boost=None):
-    """
-    Pestaña de Tienda
-    
-    Args:
-        rebirths: Cantidad de rebirths del usuario
-        on_buy_pokemon: Callback para comprar pokémon
-        on_buy_boost: Callback para comprar boost
-    """
+   
+    #Args:
+       # rebirths: Cantidad de rebirths del usuario
+        #on_buy_pokemon: Callback para comprar pokémon
+       # on_buy_boost: Callback para comprar boost
+  
     puede_comprar_pokemon = rebirths >= 10
     puede_comprar_boost = rebirths >= 3
     
-    print(f"🏪 Cargando tienda - Rebirths: {rebirths} | Puede comprar Pokémon: {puede_comprar_pokemon} | Puede comprar Boost: {puede_comprar_boost}")
+    print(f" Cargando tienda - Rebirths: {rebirths} | Puede comprar Pokémon: {puede_comprar_pokemon} | Puede comprar Boost: {puede_comprar_boost}")
     
     def comprar_pokemon_click(e):
-        print("🖱️ Click en comprar Pokémon")
+        print(" Click en comprar Pokémon")
         if on_buy_pokemon:
             on_buy_pokemon()
         else:
-            print("❌ on_buy_pokemon es None")
+            print(" on_buy_pokemon es None")
     
     def comprar_boost_click(e):
-        print("🖱️ Click en comprar Boost")
+        print(" Click en comprar Boost")
         if on_buy_boost:
             on_buy_boost()
         else:
-            print("❌ on_buy_boost es None")
+            print(" on_buy_boost es None")
     
     return ft.Container(
         content=ft.Column(
@@ -59,7 +57,7 @@ def tienda_tab(rebirths=0, on_buy_pokemon=None, on_buy_boost=None):
                                         ft.Text("💎 10 Rebirths", weight=ft.FontWeight.BOLD, color=ft.Colors.PURPLE_700),
                                         ft.TextButton(
                                             "Comprar",
-                                            on_click=comprar_pokemon_click,  # ← CORREGIDO
+                                            on_click=comprar_pokemon_click,  
                                             disabled=not puede_comprar_pokemon,
                                             style=ft.ButtonStyle(
                                                 bgcolor=ft.Colors.RED_700 if puede_comprar_pokemon else ft.Colors.GREY_400,
@@ -98,7 +96,7 @@ def tienda_tab(rebirths=0, on_buy_pokemon=None, on_buy_boost=None):
                                         ft.Text("💎 3 Rebirths", weight=ft.FontWeight.BOLD, color=ft.Colors.PURPLE_700),
                                         ft.TextButton(
                                             "Comprar",
-                                            on_click=comprar_boost_click,  # ← CORREGIDO
+                                            on_click=comprar_boost_click, 
                                             disabled=not puede_comprar_boost,
                                             style=ft.ButtonStyle(
                                                 bgcolor=ft.Colors.ORANGE_700 if puede_comprar_boost else ft.Colors.GREY_400,

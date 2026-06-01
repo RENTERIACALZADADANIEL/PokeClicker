@@ -24,7 +24,6 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
--- Estructura de tabla para la tabla `inventario_items`
 --
 
 CREATE TABLE `inventario_items` (
@@ -37,7 +36,6 @@ CREATE TABLE `inventario_items` (
 -- --------------------------------------------------------
 
 --
--- Estructura de tabla para la tabla `pokemones_obtenidos`
 --
 
 CREATE TABLE `pokemones_obtenidos` (
@@ -52,7 +50,6 @@ CREATE TABLE `pokemones_obtenidos` (
 -- --------------------------------------------------------
 
 --
--- Estructura de tabla para la tabla `progreso_juego`
 --
 
 CREATE TABLE `progreso_juego` (
@@ -67,7 +64,6 @@ CREATE TABLE `progreso_juego` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Volcado de datos para la tabla `progreso_juego`
 --
 
 INSERT INTO `progreso_juego` (`id_progreso`, `id_usuario`, `clicks_actuales`, `clicks_totales`, `cantidad_rebirths`, `costo_siguiente_rebirth`, `multiplicador_activo`, `fin_boost`) VALUES
@@ -76,7 +72,6 @@ INSERT INTO `progreso_juego` (`id_progreso`, `id_usuario`, `clicks_actuales`, `c
 -- --------------------------------------------------------
 
 --
--- Estructura de tabla para la tabla `tienda`
 --
 
 CREATE TABLE `tienda` (
@@ -91,7 +86,6 @@ CREATE TABLE `tienda` (
 -- --------------------------------------------------------
 
 --
--- Estructura de tabla para la tabla `usuarios`
 --
 
 CREATE TABLE `usuarios` (
@@ -103,7 +97,6 @@ CREATE TABLE `usuarios` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Volcado de datos para la tabla `usuarios`
 --
 
 INSERT INTO `usuarios` (`id_usuario`, `username`, `email`, `password`, `fecha_registro`) VALUES
@@ -118,11 +111,9 @@ INSERT INTO `usuarios` (`id_usuario`, `username`, `email`, `password`, `fecha_re
 (9, 'dasai', 'dasai@gmail.com', '$2b$12$4tUW4BsQhOhBBnA0uNg3mOJfXyYWA1aJ5Ho7ErV7naktesAMMtCCO', '2026-05-21 23:58:45');
 
 --
--- Índices para tablas volcadas
 --
 
 --
--- Indices de la tabla `inventario_items`
 --
 ALTER TABLE `inventario_items`
   ADD PRIMARY KEY (`id_item_inv`),
@@ -130,85 +121,70 @@ ALTER TABLE `inventario_items`
   ADD KEY `id_producto` (`id_producto`);
 
 --
--- Indices de la tabla `pokemones_obtenidos`
 --
 ALTER TABLE `pokemones_obtenidos`
   ADD PRIMARY KEY (`id_instancia`),
   ADD KEY `id_usuario` (`id_usuario`);
 
 --
--- Indices de la tabla `progreso_juego`
 --
 ALTER TABLE `progreso_juego`
   ADD PRIMARY KEY (`id_progreso`),
   ADD KEY `id_usuario` (`id_usuario`);
 
 --
--- Indices de la tabla `tienda`
 --
 ALTER TABLE `tienda`
   ADD PRIMARY KEY (`id_producto`);
 
 --
--- Indices de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
   ADD PRIMARY KEY (`id_usuario`),
   ADD UNIQUE KEY `email` (`email`);
 
 --
--- AUTO_INCREMENT de las tablas volcadas
 --
-
 --
--- AUTO_INCREMENT de la tabla `inventario_items`
 --
 ALTER TABLE `inventario_items`
   MODIFY `id_item_inv` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT de la tabla `pokemones_obtenidos`
 --
 ALTER TABLE `pokemones_obtenidos`
   MODIFY `id_instancia` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT de la tabla `progreso_juego`
 --
 ALTER TABLE `progreso_juego`
   MODIFY `id_progreso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
--- AUTO_INCREMENT de la tabla `tienda`
 --
 ALTER TABLE `tienda`
   MODIFY `id_producto` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
   MODIFY `id_usuario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
--- Restricciones para tablas volcadas
 --
 
 --
--- Filtros para la tabla `inventario_items`
 --
 ALTER TABLE `inventario_items`
   ADD CONSTRAINT `inventario_items_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id_usuario`) ON DELETE CASCADE,
   ADD CONSTRAINT `inventario_items_ibfk_2` FOREIGN KEY (`id_producto`) REFERENCES `tienda` (`id_producto`) ON DELETE CASCADE;
 
 --
--- Filtros para la tabla `pokemones_obtenidos`
 --
 ALTER TABLE `pokemones_obtenidos`
   ADD CONSTRAINT `pokemones_obtenidos_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id_usuario`) ON DELETE CASCADE;
 
 --
--- Filtros para la tabla `progreso_juego`
 --
 ALTER TABLE `progreso_juego`
   ADD CONSTRAINT `progreso_juego_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id_usuario`) ON DELETE CASCADE;

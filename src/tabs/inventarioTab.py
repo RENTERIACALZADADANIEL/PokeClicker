@@ -20,7 +20,7 @@ def inventario_tab(inventory_items=None, on_use_boost=None):
     # Sección de Pokémon
     if pokemons:
         items_list.append(
-            ft.Text(f"🐾 Tus Pokémon ({len(pokemons)})", size=18, weight=ft.FontWeight.BOLD)
+            ft.Text(f" Tus Pokémon ({len(pokemons)})", size=18, weight=ft.FontWeight.BOLD)
         )
         for pkm in pokemons:
             items_list.append(
@@ -73,7 +73,7 @@ def inventario_tab(inventory_items=None, on_use_boost=None):
                                     expand=True
                                 ),
                                 ft.TextButton(
-                                    "⚡ Usar",
+                                    " Usar",
                                     on_click=lambda e: on_use_boost() if on_use_boost else None,
                                     style=ft.ButtonStyle(
                                         bgcolor=ft.Colors.ORANGE_700,

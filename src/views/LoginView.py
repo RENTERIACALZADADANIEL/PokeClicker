@@ -85,7 +85,7 @@ def LoginView(page: ft.Page, auth_controller=None):
     
     contraseña.on_submit = login_click
 
-    # --- Recuperar contraseña (inline, sin nueva ruta) ---
+    # Recuperar contraseña (inline, sin nueva ruta) 
     recuperar_container = ft.Container(visible=False, expand=True)
     login_column = ft.Column(
         [

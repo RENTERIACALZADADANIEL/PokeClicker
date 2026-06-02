@@ -89,7 +89,7 @@ def principal_tab(clicks_actuales=0, clicks_totales=0, cantidad_rebirths=0,
                 ft.Row(
                     [
                         ft.Text("🔄", size=14),
-                        ft.Text(f"Rebirth x1.25", size=12, color=ft.Colors.ORANGE_700),
+                        ft.Text(f"Rebirth x{boost_info.get('total_multiplier', 1.0):.2f}", size=12, color=ft.Colors.ORANGE_700),
                         ft.Text(f"{format_time(rb_time)}", size=12, color=ft.Colors.ORANGE_500),
                     ],
                     alignment=ft.MainAxisAlignment.CENTER,
@@ -103,7 +103,7 @@ def principal_tab(clicks_actuales=0, clicks_totales=0, cantidad_rebirths=0,
                 ft.Row(
                     [
                         ft.Text("⚡", size=14),
-                        ft.Text(f"Tienda x2", size=12, color=ft.Colors.ORANGE_700),
+                        ft.Text(f"Tienda x{boost_info.get('total_multiplier', 1.0):.2f}", size=12, color=ft.Colors.ORANGE_700),
                         ft.Text(f"{format_time(td_time)}", size=12, color=ft.Colors.ORANGE_500),
                     ],
                     alignment=ft.MainAxisAlignment.CENTER,
@@ -114,7 +114,7 @@ def principal_tab(clicks_actuales=0, clicks_totales=0, cantidad_rebirths=0,
         stats_elements.append(
             ft.Container(
                 content=ft.Column(boost_details, spacing=3, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-                padding=ft.padding.only(top=5)
+                padding=ft.Padding(left=0, top=5, right=0, bottom=0)
             )
         )
         

@@ -52,6 +52,7 @@ def LoginView(page: ft.Page, auth_controller=None):
         user, msg = auth_controller.login(correo.value, contraseña.value)
         if user:
             page.user_data = user
+            mensaje.value = ""
             mostrar_snackbar("¡Bienvenido al mundo Pokémon!", ft.Colors.RED_700)
             page.go("/home")
         else:

@@ -203,13 +203,8 @@ class RecuperarView:
             self.set_msg(texto)
     
     def guardar(self, e):
-<<<<<<< HEAD
         """Paso 3: Guardar nueva contraseña"""
         self.set_msg("", ft.Colors.RED_400)
-=======
-        #Paso 3: Guardar nueva contraseña
-        self.set_msg("")
->>>>>>> d0cb0ecfc6d8d2f9911ee14894c6e740840c322c
         
         if not self.nueva_pass.value or not self.confirmar_pass.value:
             self.set_msg("Completa todos los campos.")

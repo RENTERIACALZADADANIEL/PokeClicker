@@ -36,7 +36,9 @@ def inventario_tab(inventory_items=None, on_use_boost=None):
                                 ft.Column(
                                     [
                                         ft.Text(pkm.nombre, weight=ft.FontWeight.BOLD),
-                                        ft.Text(f"Cantidad: {pkm.cantidad}", size=12, color=ft.Colors.GREY_600),
+                                        ft.Text(f"Nivel: {pkm.nivel}  |  Cantidad: {pkm.cantidad}", size=12, color=ft.Colors.GREY_600),
+                                        ft.Text("✅ Equipado" if pkm.esta_equipado else "No equipado", size=11,
+                                                color=ft.Colors.GREEN_700 if pkm.esta_equipado else ft.Colors.GREY_400),
                                     ],
                                     spacing=2
                                 ),
@@ -53,41 +55,64 @@ def inventario_tab(inventory_items=None, on_use_boost=None):
         if pokemons:
             items_list.append(ft.Divider(height=10, color=ft.Colors.TRANSPARENT))
         
-        items_list.append(
-            ft.Text(f"⚡ Tus Boosts ({sum(b.cantidad for b in boosts)})", size=18, weight=ft.FontWeight.BOLD)
-        )
-        
-        for boost in boosts:
+        pendientes = [b for b in boosts if b.tipo == 'boost']
+        activos = [b for b in boosts if b.tipo == 'boost_activo']
+
+        if activos:
             items_list.append(
-                ft.Card(
-                    content=ft.Container(
-                        content=ft.Row(
-                            [
-                                ft.Icon(ft.Icons.BOLT, color=ft.Colors.ORANGE_700, size=40),
-                                ft.Column(
-                                    [
-                                        ft.Text(boost.nombre, weight=ft.FontWeight.BOLD),
-                                        ft.Text(f"Cantidad: {boost.cantidad}", size=12, color=ft.Colors.GREY_600),
-                                    ],
-                                    spacing=2,
-                                    expand=True
-                                ),
-                                ft.TextButton(
-                                    " Usar",
-                                    on_click=lambda e: on_use_boost() if on_use_boost else None,
-                                    style=ft.ButtonStyle(
-                                        bgcolor=ft.Colors.ORANGE_700,
-                                        color=ft.Colors.WHITE
-                                    )
-                                )
-                            ],
-                            spacing=10,
-                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN
-                        ),
-                        padding=10
+                ft.Text(f"⚡ Boost activo", size=18, weight=ft.FontWeight.BOLD)
+            )
+            for boost in activos:
+                items_list.append(
+                    ft.Card(
+                        content=ft.Container(
+                            content=ft.Row(
+                                [
+                                    ft.Icon(ft.Icons.BOLT, color=ft.Colors.ORANGE_700, size=40),
+                                    ft.Text(boost.nombre, weight=ft.FontWeight.BOLD, expand=True),
+                                ],
+                                spacing=10
+                            ),
+                            padding=10
+                        )
                     )
                 )
+
+        if pendientes:
+            items_list.append(
+                ft.Text(f"⚡ Tus Boosts ({sum(b.cantidad for b in pendientes)})", size=18, weight=ft.FontWeight.BOLD)
             )
+            for boost in pendientes:
+                items_list.append(
+                    ft.Card(
+                        content=ft.Container(
+                            content=ft.Row(
+                                [
+                                    ft.Icon(ft.Icons.BOLT, color=ft.Colors.ORANGE_700, size=40),
+                                    ft.Column(
+                                        [
+                                            ft.Text(boost.nombre, weight=ft.FontWeight.BOLD),
+                                            ft.Text(f"Cantidad: {boost.cantidad}", size=12, color=ft.Colors.GREY_600),
+                                        ],
+                                        spacing=2,
+                                        expand=True
+                                    ),
+                                    ft.TextButton(
+                                        "⚡ Usar",
+                                        on_click=lambda e: on_use_boost() if on_use_boost else None,
+                                        style=ft.ButtonStyle(
+                                            bgcolor=ft.Colors.ORANGE_700,
+                                            color=ft.Colors.WHITE
+                                        )
+                                    )
+                                ],
+                                spacing=10,
+                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+                            ),
+                            padding=10
+                        )
+                    )
+                )
     
     # Si no hay items
     if not items_list:

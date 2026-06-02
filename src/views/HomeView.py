@@ -19,6 +19,7 @@ def HomeView(page: ft.Page, progreso_ctrl, pokemon_ctrl):
     # Estado reactivo
     estado = progreso_ctrl.obtener_progreso(id_usuario)
     inventario = progreso_ctrl.obtener_inventario(id_usuario)
+    productos_tienda = progreso_ctrl.obtener_productos_tienda()
 
     # Pokémon aleatorio inicial 
     _pokemon_inicial = PokeAPI.get_random_pokemon()
@@ -51,12 +52,14 @@ def HomeView(page: ft.Page, progreso_ctrl, pokemon_ctrl):
         elif idx == 1:
             contenido.content = tienda_tab(
                 rebirths=estado["cantidad_rebirths"],
+                productos=productos_tienda,
                 on_buy_pokemon=on_buy_pokemon,
                 on_buy_boost=on_buy_boost,
             )
         elif idx == 2:
             contenido.content = inventario_tab(
                 inventory_items=inventario,
+                on_use_boost=on_use_boost,
             )
         page.update()
 
@@ -84,9 +87,19 @@ def HomeView(page: ft.Page, progreso_ctrl, pokemon_ctrl):
         render()
 
     def on_buy_boost():
-        nonlocal estado
+        nonlocal estado, inventario
         ok, msg = progreso_ctrl.comprar_boost_tienda(id_usuario)
         estado = progreso_ctrl.obtener_progreso(id_usuario)
+        inventario = progreso_ctrl.obtener_inventario(id_usuario)
+        page.snack_bar = ft.SnackBar(ft.Text(msg), bgcolor=ft.Colors.ORANGE_700 if ok else ft.Colors.GREY_700)
+        page.snack_bar.open = True
+        render()
+
+    def on_use_boost():
+        nonlocal estado, inventario
+        ok, msg = progreso_ctrl.usar_boost_tienda(id_usuario)
+        estado = progreso_ctrl.obtener_progreso(id_usuario)
+        inventario = progreso_ctrl.obtener_inventario(id_usuario)
         page.snack_bar = ft.SnackBar(ft.Text(msg), bgcolor=ft.Colors.ORANGE_700 if ok else ft.Colors.GREY_700)
         page.snack_bar.open = True
         render()

@@ -20,7 +20,7 @@ def HomeView(page: ft.Page, progreso_ctrl, pokemon_ctrl):
     estado = progreso_ctrl.obtener_progreso(id_usuario)
     inventario = progreso_ctrl.obtener_inventario(id_usuario)
 
-    # Pokémon aleatorio inicial (se mantiene durante la sesión)
+    # Pokémon aleatorio inicial 
     _pokemon_inicial = PokeAPI.get_random_pokemon()
     pokemon_sprite = [
         _pokemon_inicial["sprite"] if _pokemon_inicial else

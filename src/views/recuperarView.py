@@ -2,7 +2,7 @@ import flet as ft
 import time
 
 class RecuperarView:
-    """Vista de recuperación de contraseña en 3 pasos"""
+    #Vista de recuperacion de contraseña en 3 pasos
     
     def __init__(self, page: ft.Page, auth_controller, on_volver):
         self.page = page
@@ -145,13 +145,13 @@ class RecuperarView:
         )
     
     def set_msg(self, texto, color=ft.Colors.RED_400):
-        """Muestra un mensaje"""
+       
         self.msg.value = texto
         self.msg.color = color
         self.page.update()
     
     def enviar(self, e):
-        """Paso 1: Enviar código al email"""
+        
         self.set_msg("")
         email = self.email_input.value.strip()
         
@@ -170,7 +170,7 @@ class RecuperarView:
             self.set_msg(texto)
     
     def reenviar(self, e):
-        """Reenvía el código al mismo email"""
+       
         self.set_msg("Reenviando código...", ft.Colors.BLUE_300)
         ok, texto = self.auth_controller.enviar_codigo(self.email_guardado)
         if ok:
@@ -180,7 +180,7 @@ class RecuperarView:
             self.set_msg(texto)
 
     def verificar(self, e):
-        """Paso 2: Verificar código"""
+        
         self.set_msg("")
         codigo = self.codigo_input.value.strip()
         
@@ -203,8 +203,13 @@ class RecuperarView:
             self.set_msg(texto)
     
     def guardar(self, e):
+<<<<<<< HEAD
         """Paso 3: Guardar nueva contraseña"""
         self.set_msg("", ft.Colors.RED_400)
+=======
+        #Paso 3: Guardar nueva contraseña
+        self.set_msg("")
+>>>>>>> d0cb0ecfc6d8d2f9911ee14894c6e740840c322c
         
         if not self.nueva_pass.value or not self.confirmar_pass.value:
             self.set_msg("Completa todos los campos.")
@@ -228,7 +233,7 @@ class RecuperarView:
             self.set_msg(texto)
     
     def build(self):
-        """Construye la vista completa"""
+        #construccion de vista
         return ft.Container(
             content=ft.Column(
                 controls=[self.paso1, self.paso2, self.paso3],

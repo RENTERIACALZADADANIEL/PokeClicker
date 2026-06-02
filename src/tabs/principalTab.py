@@ -4,22 +4,7 @@ def principal_tab(clicks_actuales=0, clicks_totales=0, cantidad_rebirths=0,
                   costo_rebirth=100, multiplicador=1.0, puede_rebirth=False,
                   boost_activo=False, boost_tiempo_restante=0, boost_info=None,
                   pokemon_sprite=None, on_click=None, on_rebirth=None):
-    """
-    Pestaña principal del juego
-    
-    Args:
-        clicks_actuales: Clicks actuales del jugador
-        clicks_totales: Total de clicks históricos
-        cantidad_rebirths: Número de rebirths realizados
-        costo_rebirth: Costo del siguiente rebirth
-        multiplicador: Multiplicador activo total
-        puede_rebirth: Si puede hacer rebirth ahora
-        boost_activo: Si hay algún boost activo
-        boost_tiempo_restante: Tiempo restante del boost más largo
-        boost_info: Info detallada de boosts {"rebirth_boost_active", "rebirth_boost_time", "tienda_boost_active", "tienda_boost_time", "total_multiplier"}
-        on_click: Función a llamar al hacer click
-        on_rebirth: Función a llamar al hacer rebirth
-    """
+  
     
     if boost_info is None:
         boost_info = {}

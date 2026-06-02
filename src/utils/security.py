@@ -17,35 +17,17 @@ DEBUG_MODE = os.getenv('DEBUG_MODE', 'false').lower() == 'true'
 # Almacenamiento temporal de tokens (en producción usar BD o Redis)
 _reset_tokens = {}  # {token: {"user_id": 1, "email": "...", "expires": datetime}}
 
-# ============================================================
+
 # FUNCIONES DE CONTRASEÑA
-# ============================================================
 
 def hash_password(password: str) -> str:
-    """
-    Hashea una contraseña usando bcrypt
-    
-    Args:
-        password: Contraseña en texto plano
-        
-    Returns:
-        str: Hash de la contraseña
-    """
+   
     salt = bcrypt.gensalt(rounds=12)
     hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
     return hashed.decode('utf-8')
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """
-    Verifica una contraseña contra su hash
     
-    Args:
-        plain_password: Contraseña en texto plano
-        hashed_password: Hash almacenado
-        
-    Returns:
-        bool: True si coinciden
-    """
     try:
         return bcrypt.checkpw(
             plain_password.encode('utf-8'),
@@ -54,36 +36,20 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     except Exception:
         return False
 
-# ============================================================
+
 # FUNCIONES DE TOKEN (6 caracteres)
-# ============================================================
 
 def generate_reset_token() -> str:
-    """
-    Genera un token único de 6 caracteres (letras mayúsculas + números)
-    
-    Ejemplo: "A7B2X9"
-    
-    Usa secrets.choice() para ser criptográficamente seguro
-    """
+   
     alphabet = string.ascii_uppercase + string.digits
     return ''.join(secrets.choice(alphabet) for _ in range(6))
 
 def store_reset_token(user_id: int, email: str) -> str:
-    """
-    Genera y almacena un token de recuperación
-    
-    Args:
-        user_id: ID del usuario
-        email: Email del usuario
-        
-    Returns:
-        str: Token generado
-    """
+   
     # Limpiar tokens expirados primero
     clean_expired_tokens()
     
-    # Generar token único (evitar colisiones)
+    # Generar token unico 
     token = generate_reset_token()
     while token in _reset_tokens:
         token = generate_reset_token()
@@ -98,15 +64,7 @@ def store_reset_token(user_id: int, email: str) -> str:
     return token
 
 def verify_reset_token(token: str) -> dict | None:
-    """
-    Verifica un token de recuperación
-    
-    Args:
-        token: Token de 6 caracteres
-        
-    Returns:
-        dict: Datos del token {"user_id", "email"} o None si es inválido/expirado
-    """
+   
     # Limpiar tokens expirados
     clean_expired_tokens()
     
@@ -127,33 +85,23 @@ def verify_reset_token(token: str) -> dict | None:
     }
 
 def delete_reset_token(token: str):
-    """Elimina un token después de usarlo"""
+   
     if token in _reset_tokens:
         del _reset_tokens[token]
 
 def clean_expired_tokens():
-    """Elimina tokens expirados del almacenamiento"""
+    
     now = datetime.now()
     expired = [t for t, d in _reset_tokens.items() if now > d["expires"]]
     for token in expired:
         del _reset_tokens[token]
 
-# ============================================================
+
 # FUNCIONES DE EMAIL
-# ============================================================
+
 
 def send_reset_email(email: str, token: str, username: str) -> bool:
-    """
-    Envía un correo de recuperación con el token de 6 caracteres
-    
-    Args:
-        email: Email del destinatario
-        token: Token de 6 caracteres
-        username: Nombre de usuario
-        
-    Returns:
-        bool: True si se envió correctamente
-    """
+   
     # Si estamos en modo debug, mostramos el token en consola
     if DEBUG_MODE:
         print(f"""
@@ -249,11 +197,11 @@ def send_reset_email(email: str, token: str, username: str) -> bool:
         return True
         
     except smtplib.SMTPAuthenticationError:
-        print("❌ Error de autenticación: Verifica tu email y contraseña de aplicación")
+        print(" Error de autenticación: Verifica tu email y contraseña de aplicación")
         return False
     except smtplib.SMTPException as e:
-        print(f"❌ Error SMTP: {e}")
+        print(f" Error SMTP: {e}")
         return False
     except Exception as e:
-        print(f"❌ Error inesperado al enviar correo: {e}")
+        print(f" Error inesperado al enviar correo: {e}")
         return False

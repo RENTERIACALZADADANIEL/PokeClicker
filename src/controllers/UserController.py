@@ -5,6 +5,8 @@ import os
 from email.mime.text import MIMEText
 from datetime import datetime, timedelta
 from models.databaseModel import db
+from models.schemasModel import UsuarioSchema, RegistroSchema
+from pydantic import ValidationError
 
 # Almacén temporal de códigos: {email: {"codigo": str, "expira": datetime}}
 _codigos_pendientes = {}
@@ -13,6 +15,16 @@ _codigos_pendientes = {}
 class AuthController:
 
     def login(self, email, password):
+        try:
+            UsuarioSchema(email=email, password=password)
+        except ValidationError as e:
+            for err in e.errors():
+                campo = err["loc"][0]
+                if campo == "email":
+                    return None, "El correo no tiene un formato válido o el dominio es incorrecto"
+                if campo == "password":
+                    return None, "La contraseña debe tener al menos 8 caracteres"
+
         cursor = db.get_cursor()
         if not cursor:
             return None, "Error de conexión a la base de datos"
@@ -20,10 +32,10 @@ class AuthController:
             cursor.execute("SELECT * FROM usuarios WHERE email = %s", (email,))
             user = cursor.fetchone()
             if not user:
-                return None, "Correo o contraseña incorrectos"
+                return None, "No existe una cuenta con ese correo"
             if bcrypt.checkpw(password.encode(), user["password"].encode()):
                 return user, "Login exitoso"
-            return None, "Correo o contraseña incorrectos"
+            return None, "Contraseña incorrecta"
         except Exception as e:
             print(f"Error en login: {e}")
             return None, "Error interno"
@@ -31,6 +43,18 @@ class AuthController:
             cursor.close()
 
     def registrar_usuario(self, username, email, password):
+        try:
+            RegistroSchema(nombre=username, email=email, password=password)
+        except ValidationError as e:
+            for err in e.errors():
+                campo = err["loc"][0]
+                if campo == "nombre":
+                    return False, "El nombre debe tener al menos 3 caracteres"
+                if campo == "email":
+                    return False, "El correo no tiene un formato válido o el dominio es incorrecto"
+                if campo == "password":
+                    return False, "La contraseña debe tener al menos 8 caracteres"
+
         cursor = db.get_cursor()
         if not cursor:
             return False, "Error de conexión a la base de datos"
